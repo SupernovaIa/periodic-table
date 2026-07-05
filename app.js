@@ -692,7 +692,7 @@ function groupPeriod(el) {
 // Quick preview shown in the central gap while hovering (before a full click).
 function renderCentralPreview(el) {
   stopOrb();
-  inlineEl.classList.remove("media");
+  inlineEl.classList.remove("media", "idle");
   const inner = inlineEl.querySelector(".inline-detail-inner");
   inner.style.setProperty("--cat", `var(--c-${el.cat})`);
   const other = el.name[lang === "en" ? "es" : "en"];
@@ -719,6 +719,7 @@ function renderCentralPreview(el) {
 function renderCentralIdle() {
   stopOrb();
   inlineEl.classList.remove("media");
+  inlineEl.classList.add("idle");
   const inner = inlineEl.querySelector(".inline-detail-inner");
   inner.style.setProperty("--cat", "var(--border)");
   inner.innerHTML = `
@@ -740,6 +741,7 @@ function resetCentral() {
 function renderCentralMedia(el) {
   stopOrb();
   inlineEl.classList.add("media");
+  inlineEl.classList.remove("idle");
   const img = typeof IMAGES !== "undefined" ? IMAGES[el.n] : null;
   const inner = inlineEl.querySelector(".inline-detail-inner");
   inner.style.setProperty("--cat", `var(--c-${el.cat})`);
@@ -852,6 +854,7 @@ function openParticleDetail(p) {
 function renderParticleCentral(p) {
   stopOrb();
   inlineEl.classList.add("media");   // float centred (not a grid item in particles view)
+  inlineEl.classList.remove("idle");
   const inner = inlineEl.querySelector(".inline-detail-inner");
   inner.style.setProperty("--cat", `var(--pc-${p.cat})`);
   inner.innerHTML = `

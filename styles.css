@@ -583,6 +583,11 @@ main { max-width: 1240px; margin: 0 auto; }
   position: absolute; inset: 0; padding: 0; display: block;
   background: var(--panel); -webkit-backdrop-filter: none; backdrop-filter: none;
 }
+/* Idle prompt (no element hovered): even more see-through, barely any blur. */
+.inline-detail.idle .inline-detail-inner {
+  background: color-mix(in srgb, var(--panel) 28%, transparent);
+  -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px);
+}
 .cmedia {
   position: absolute; inset: 0;
   display: grid; place-items: center;
