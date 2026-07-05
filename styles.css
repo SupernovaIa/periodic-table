@@ -30,6 +30,7 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
+html { overflow-x: hidden; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, Helvetica, Arial, sans-serif;
@@ -149,7 +150,12 @@ main { max-width: 1240px; margin: 0 auto; }
 .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 
 /* --- Tabla --- */
-.table-scroll { overflow-x: auto; padding-bottom: 8px; }
+/* Visible by default so hover scale/glow isn't clipped; scroll only when the
+   table is wider than the screen. */
+.table-scroll { overflow: visible; padding: 14px 6px; }
+@media (max-width: 940px) {
+  .table-scroll { overflow-x: auto; padding: 10px 4px; }
+}
 .periodic-table {
   display: grid;
   grid-template-columns: repeat(18, minmax(46px, 1fr));
