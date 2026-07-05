@@ -462,9 +462,54 @@ const isWide = () => window.matchMedia("(min-width: 900px)").matches;
 // Wide screens: a big image/orbital fills the central gap while the full data
 // lives in the side drawer (no dimming overlay, so the central visual stays
 // visible). Narrow screens: everything goes in the drawer, image included.
+// --- Deep link: reflect the open element in the URL hash (#Fe) ---
+function elementFromHash(hash = location.hash) {
+  const h = decodeURIComponent(hash.replace(/^#/, "")).trim();
+  if (!h) return null;
+  return ELEMENTS.find(e => e.s.toLowerCase() === h.toLowerCase())
+      || ELEMENTS.find(e => String(e.n) === h) || null;
+}
+function setHash(symbol) {
+  history.replaceState(null, "", symbol ? `#${symbol}` : location.pathname + location.search);
+}
+function openFromHash(hash = location.hash) {
+  const el = elementFromHash(hash);
+  if (!el) return;
+  if (view !== "elements") setView("elements");
+  openDetail(el);
+}
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+  return new Promise((resolve, reject) => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); resolve(); } catch (e) { reject(e); }
+    document.body.removeChild(ta);
+  });
+}
+function copyElementLink(btn) {
+  const label = btn.querySelector("span");
+  copyText(location.href).finally(() => {
+    label.textContent = UI[lang].copied;
+    btn.classList.add("copied");
+    setTimeout(() => { label.textContent = UI[lang].copyLink; btn.classList.remove("copied"); }, 1600);
+  });
+}
+
+window.addEventListener("hashchange", () => {
+  const el = elementFromHash();
+  if (el) openFromHash();
+  else if (openElement) closeDetail();
+});
+
 function openDetail(el) {
   openElement = el;
   openParticle = null;
+  setHash(el.s);
   markSelected(el);
   if (isWide()) {
     renderCentralMedia(el);
@@ -507,10 +552,12 @@ function renderDrawer(el, { media = true, overlay = true } = {}) {
   detailEl.innerHTML = `
     <button class="detail-close" aria-label="${UI[lang].close}">✕</button>
     ${headHTML(el)}
+    <button class="detail-share" type="button">🔗 <span>${UI[lang].copyLink}</span></button>
     ${media ? mediaBlock(el) : ""}
     <p class="detail-about">${t(el.about)}</p>
     ${statsHTML(el)}`;
   detailEl.querySelector(".detail-close").addEventListener("click", closeDetail);
+  detailEl.querySelector(".detail-share").addEventListener("click", e => copyElementLink(e.currentTarget));
   if (media) wireMedia(detailEl);
   detailEl.hidden = false;
   overlayEl.hidden = !overlay;
@@ -525,6 +572,7 @@ function closeDetail() {
   detailEl.hidden = true;
   overlayEl.hidden = true;
   if (inlineEl) inlineEl.hidden = true;
+  setHash(null);
 }
 
 overlayEl.addEventListener("click", closeDetail);
@@ -919,5 +967,7 @@ buildParticleTable();
 buildParticleLegend();
 initTimeline();
 indexCells();
+const initialHash = location.hash;   // capture before applyView() clears it
 applyLanguage();
 applyView();
+openFromHash(initialHash);

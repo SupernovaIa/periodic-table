@@ -314,6 +314,16 @@ main { max-width: 1240px; margin: 0 auto; }
   background: color-mix(in srgb, var(--cat) 22%, transparent);
   color: var(--cat); border: 1px solid color-mix(in srgb, var(--cat) 45%, transparent);
 }
+.detail-share {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+  padding: 6px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-soft); color: var(--text-dim);
+  font-size: .78rem; font-weight: 600;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.detail-share:hover { color: var(--text); border-color: color-mix(in srgb, var(--cat) 55%, var(--border)); }
+.detail-share.copied { color: var(--cat); border-color: color-mix(in srgb, var(--cat) 60%, transparent); }
+
 .detail-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 8px; }
 .detail-symbol {
   font-size: 3.4rem; font-weight: 800; line-height: 1;

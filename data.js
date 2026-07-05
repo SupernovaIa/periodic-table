@@ -54,6 +54,8 @@ const UI = {
     trends: { category: "Category", eneg: "Electroneg.", dens: "Density", melt: "Melting", boil: "Boiling", mass: "Mass" },
     timeline: "Timeline",
     upTo: "Discovered up to",
+    copyLink: "Copy link",
+    copied: "Copied!",
     labels: {
       phase: "State (room temp.)",
       dens: "Density",
@@ -82,6 +84,8 @@ const UI = {
     trends: { category: "Categoría", eneg: "Electroneg.", dens: "Densidad", melt: "Fusión", boil: "Ebullición", mass: "Masa" },
     timeline: "Línea temporal",
     upTo: "Descubiertos hasta",
+    copyLink: "Copiar enlace",
+    copied: "¡Copiado!",
     labels: {
       phase: "Estado (amb.)",
       dens: "Densidad",
