@@ -273,48 +273,75 @@ main { max-width: 1240px; margin: 0 auto; }
 .stat .value { font-size: .98rem; font-weight: 600; margin-top: 3px; }
 .stat.wide { grid-column: 1 / -1; }
 
-/* --- Inline detail card (fills the central gap, wide screens) --- */
+/* --- Central media (big image / orbitals) in the table's empty gap --- */
 .inline-detail { grid-column: 3 / 13; grid-row: 1 / 4; position: relative; min-height: 0; }
 .inline-detail-inner {
-  position: absolute; inset: 0; overflow: auto;
-  display: flex; align-items: flex-start; gap: 18px;
+  position: absolute; inset: 0; overflow: hidden;
   background: var(--panel);
   border: 1px solid color-mix(in srgb, var(--cat) 45%, var(--border));
-  border-radius: 14px; padding: 15px 16px;
+  border-radius: 14px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
   animation: fade .2s ease;
 }
-.idetail-media { flex: 0 0 230px; max-width: 42%; }
-.idetail-body { flex: 1 1 auto; min-width: 0; }
-.inline-detail .detail-close { top: 10px; right: 10px; width: 30px; height: 30px; font-size: 1rem; }
-.inline-detail .detail-media { margin: 0; }
-.inline-detail .media-frame { height: 134px; }
-.inline-detail .bohr { width: 124px; height: 124px; }
-.inline-detail .detail-badge { margin-bottom: 6px; }
-.inline-detail .detail-head { margin-bottom: 6px; gap: 12px; }
-.inline-detail .detail-symbol { width: 50px; height: 50px; font-size: 1.7rem; border-radius: 11px; }
-.inline-detail .detail-symbol .n { font-size: .56rem; top: 4px; left: 6px; }
-.inline-detail .detail-title h2 { font-size: 1.25rem; }
-.inline-detail .detail-title .mass { font-size: .8rem; }
-.inline-detail .idetail-titlerow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.inline-detail .detail-badge { margin: 0; }
-.inline-detail .detail-about {
-  margin: 5px 0 7px; font-size: .82rem;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+.cmedia {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(180px 180px at 50% 45%, color-mix(in srgb, var(--cat) 20%, transparent), transparent),
+    var(--bg-soft);
 }
-/* Compact chip stats */
-.inline-detail .cstats { display: flex; flex-wrap: wrap; gap: 5px 7px; }
-.inline-detail .cstat {
-  background: var(--bg-soft); border: 1px solid var(--border);
-  border-radius: 8px; padding: 3px 9px;
-  display: flex; flex-direction: column; min-width: 0;
+.cmedia .media-photo {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain; display: block; padding: 8px;
 }
-.inline-detail .cstat.wide { flex-basis: 100%; }
-.inline-detail .cstat .k {
-  font-size: .58rem; color: var(--text-dim);
-  text-transform: uppercase; letter-spacing: .03em;
+.cmedia .media-diagram {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
 }
-.inline-detail .cstat .v { font-size: .8rem; font-weight: 600; white-space: nowrap; }
+.cmedia[data-mode="photo"]   .media-diagram { display: none; }
+.cmedia[data-mode="photo"]   .media-photo   { display: block; }
+.cmedia[data-mode="diagram"] .media-photo   { display: none; }
+.cmedia[data-mode="diagram"] .media-diagram { display: grid; }
+.inline-detail .bohr { width: 178px; height: 178px; }
+
+.cmedia-caption {
+  position: absolute; left: 14px; bottom: 12px;
+  display: flex; align-items: baseline; gap: 8px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .85); pointer-events: none;
+}
+.cmedia-caption .cm-sym { font-size: 1.5rem; font-weight: 800; color: var(--text); }
+.cmedia-caption .cm-name { font-size: .95rem; color: var(--text); }
+
+.cmedia-toggle {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  display: inline-flex; gap: 2px;
+  background: color-mix(in srgb, var(--bg-soft) 80%, transparent);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border); border-radius: 999px; padding: 2px;
+}
+.cmedia-toggle button {
+  border: none; background: transparent; cursor: pointer;
+  color: var(--text-dim); font-size: .72rem; font-weight: 600;
+  padding: 4px 12px; border-radius: 999px; transition: background .15s, color .15s;
+}
+.cmedia-toggle button:hover { color: var(--text); }
+.cmedia[data-mode="photo"]   .cmedia-toggle button[data-mode="photo"],
+.cmedia[data-mode="diagram"] .cmedia-toggle button[data-mode="diagram"] {
+  background: var(--accent); color: #0b0f1a;
+}
+.cmedia-credit {
+  position: absolute; right: 10px; bottom: 8px;
+  font-size: .62rem; color: var(--text-dim);
+  max-width: 52%; text-align: right; line-height: 1.25;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .7);
+}
+.inline-detail .detail-close {
+  position: absolute; top: 8px; right: 8px; z-index: 3;
+  width: 30px; height: 30px; font-size: 1rem;
+  background: color-mix(in srgb, var(--bg-soft) 80%, transparent);
+  backdrop-filter: blur(4px);
+}
 
 /* Selected element highlight */
 .element.selected {

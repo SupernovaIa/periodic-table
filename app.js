@@ -201,21 +201,6 @@ function statsHTML(el) {
     </div>`;
 }
 
-// Compact stats (chips) for the inline card, where vertical space is tight.
-// Curated subset that fits the central gap without scrolling.
-function statsCompactHTML(el) {
-  const L = UI[lang].labels;
-  const items = [
-    [L.phase, t(PHASES[el.phase]), false],
-    [L.dens, fmt(el.dens, " g/cm³"), false],
-    [L.melt, fmt(el.melt, " °C"), false],
-    [L.boil, fmt(el.boil, " °C"), false],
-    [L.eneg, fmt(el.eneg), false]
-  ];
-  return `<div class="cstats">` + items.map(([k, v, wide]) =>
-    `<div class="cstat${wide ? " wide" : ""}"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("") + `</div>`;
-}
-
 function wireMedia(scope) {
   const media = scope.querySelector(".detail-media");
   if (!media) return;
@@ -233,54 +218,59 @@ function markSelected(el) {
 
 const isWide = () => window.matchMedia("(min-width: 900px)").matches;
 
-// Choose inline card (central gap) on wide screens, side drawer on narrow ones.
+// Wide screens: a big image/orbital fills the central gap while the full data
+// lives in the side drawer (no dimming overlay, so the central visual stays
+// visible). Narrow screens: everything goes in the drawer, image included.
 function openDetail(el) {
   openElement = el;
   markSelected(el);
-  if (isWide()) renderInline(el); else renderDrawer(el);
+  if (isWide()) {
+    renderCentralMedia(el);
+    renderDrawer(el, { media: false, overlay: false });
+  } else {
+    if (inlineEl) inlineEl.hidden = true;
+    renderDrawer(el, { media: true, overlay: true });
+  }
 }
 
-function renderInline(el) {
-  detailEl.hidden = true;
-  overlayEl.hidden = true;
+function renderCentralMedia(el) {
+  const img = typeof IMAGES !== "undefined" ? IMAGES[el.n] : null;
   const inner = inlineEl.querySelector(".inline-detail-inner");
   inner.style.setProperty("--cat", `var(--c-${el.cat})`);
   inner.innerHTML = `
     <button class="detail-close" aria-label="${UI[lang].close}">✕</button>
-    <div class="idetail-media">${mediaBlock(el)}</div>
-    <div class="idetail-body">
-      <div class="detail-head">
-        <div class="detail-symbol"><span class="n">${el.n}</span>${el.s}</div>
-        <div class="detail-title">
-          <div class="idetail-titlerow">
-            <h2>${t(el.name)}</h2>
-            <span class="detail-badge">${t(CATEGORIES[el.cat])}</span>
-          </div>
-          <div class="mass">${UI[lang].mass}: ${fmt(el.mass, " u")}</div>
-        </div>
+    <div class="cmedia" data-mode="${img ? "photo" : "diagram"}">
+      ${img ? `<img class="media-photo" src="${img.file}" alt="${t(el.name)}">` : ""}
+      <div class="media-diagram">${bohrSVG(el)}</div>
+      <div class="cmedia-caption">
+        <span class="cm-sym">${el.s}</span>
+        <span class="cm-name">${t(el.name)}</span>
       </div>
-      <p class="detail-about">${t(el.about)}</p>
-      ${statsCompactHTML(el)}
+      ${img ? `<div class="cmedia-toggle">
+        <button type="button" data-mode="photo">${UI[lang].photo}</button>
+        <button type="button" data-mode="diagram">${UI[lang].diagram}</button>
+      </div>` : ""}
+      <div class="cmedia-credit">${img ? img.credit : UI[lang].noPhoto}</div>
     </div>`;
   inner.querySelector(".detail-close").addEventListener("click", closeDetail);
-  wireMedia(inner);
+  const cm = inner.querySelector(".cmedia");
+  cm.querySelectorAll(".cmedia-toggle button").forEach(btn =>
+    btn.addEventListener("click", () => { cm.dataset.mode = btn.dataset.mode; }));
   inlineEl.hidden = false;
-  inner.scrollTop = 0;
 }
 
-function renderDrawer(el) {
-  if (inlineEl) inlineEl.hidden = true;
+function renderDrawer(el, { media = true, overlay = true } = {}) {
   detailEl.style.setProperty("--cat", `var(--c-${el.cat})`);
   detailEl.innerHTML = `
     <button class="detail-close" aria-label="${UI[lang].close}">✕</button>
     ${headHTML(el)}
-    ${mediaBlock(el)}
+    ${media ? mediaBlock(el) : ""}
     <p class="detail-about">${t(el.about)}</p>
     ${statsHTML(el)}`;
   detailEl.querySelector(".detail-close").addEventListener("click", closeDetail);
-  wireMedia(detailEl);
+  if (media) wireMedia(detailEl);
   detailEl.hidden = false;
-  overlayEl.hidden = false;
+  overlayEl.hidden = !overlay;
   detailEl.scrollTop = 0;
 }
 
