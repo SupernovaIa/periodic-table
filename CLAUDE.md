@@ -11,10 +11,13 @@ directamente en el navegador (`open index.html`) y se publica con GitHub Pages.
 
 | Archivo       | Responsabilidad                                             |
 |---------------|------------------------------------------------------------|
-| `index.html`  | Estructura y contenedores (tabla, panel, selector idioma). |
-| `styles.css`  | Estilos, tema oscuro y tokens de color por categoría.      |
-| `data.js`     | Datos de los 118 elementos + textos de UI (fuente única).  |
-| `app.js`      | Render de la tabla, filtros, panel de detalle e i18n.      |
+| `index.html`      | Estructura y contenedores (tabla, panel, selector idioma).           |
+| `styles.css`      | Estilos, tema oscuro y tokens de color por categoría.                |
+| `data.js`         | Datos de los 118 elementos + textos de UI (fuente única).            |
+| `images.js`       | Mapa nº atómico → foto (`images/…`) + crédito de licencia.           |
+| `app.js`          | Render de la tabla, filtros, panel, i18n y modelo de Bohr.           |
+| `images/`         | Fotos de elementos (redimensionadas, de Wikimedia Commons).          |
+| `ATTRIBUTIONS.md` | Atribución/licencia de cada foto (obligatorio por CC-BY).            |
 
 ## Convenciones
 
@@ -32,6 +35,12 @@ directamente en el navegador (`open index.html`) y se publica con GitHub Pages.
 - **CSS**: usa las variables de `:root` (colores, tema). Los colores por categoría
   son `--c-<categoria>`.
 - **Sin dependencias ni paso de build**: mantenerlo en HTML/CSS/JS plano.
+- **Imágenes de elementos**: el panel muestra la **foto** (`IMAGES[nº]` en `images.js`)
+  con un conmutador al **modelo de Bohr**; si un elemento no tiene foto, se muestra
+  solo el diagrama. El modelo de Bohr se **genera** desde el número atómico
+  (`electronShells` / `bohrSVG` en `app.js`), no son assets.
+- **Licencias**: toda foto nueva debe llevar su entrada en `ATTRIBUTIONS.md` y un
+  crédito corto en `images.js`. Redimensiona a ~520px para no inflar el repo.
 
 ## Verificación
 

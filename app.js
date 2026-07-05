@@ -95,6 +95,73 @@ function applyFilters() {
 
 searchEl.addEventListener("input", applyFilters);
 
+// --- Bohr atomic model (computed from atomic number, aufbau order) ---
+// Electrons per principal shell (n). Aufbau reproduces the standard Bohr counts
+// (e.g. K -> 2,8,8,1). Minor ground-state exceptions (Cr, Cu…) are ignored — fine
+// for a schematic diagram.
+function electronShells(z) {
+  const order = [[1,2],[2,2],[2,6],[3,2],[3,6],[4,2],[3,10],[4,6],[5,2],[4,10],
+                 [5,6],[6,2],[4,14],[5,10],[6,6],[7,2],[5,14],[6,10],[7,6]];
+  const shells = [0,0,0,0,0,0,0];
+  let e = z;
+  for (const [n, cap] of order) {
+    if (e <= 0) break;
+    const put = Math.min(cap, e);
+    shells[n - 1] += put;
+    e -= put;
+  }
+  return shells.filter(x => x > 0);
+}
+
+function bohrSVG(el) {
+  const shells = electronShells(el.n);
+  const size = 220, c = size / 2, maxR = c - 12;
+  const step = maxR / (shells.length + 0.4);
+  let rings = "", groups = "";
+  shells.forEach((count, i) => {
+    const r = step * (i + 1);
+    rings += `<circle class="bohr-ring" cx="${c}" cy="${c}" r="${r.toFixed(1)}"/>`;
+    let dots = "";
+    for (let k = 0; k < count; k++) {
+      const a = (2 * Math.PI * k / count) - Math.PI / 2;
+      const x = c + r * Math.cos(a), y = c + r * Math.sin(a);
+      dots += `<circle class="bohr-e" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.4"/>`;
+    }
+    const dur = 18 + i * 6, dir = i % 2 ? "reverse" : "normal";
+    groups += `<g class="bohr-shell" style="transform-origin:${c}px ${c}px;animation-duration:${dur}s;animation-direction:${dir}">${dots}</g>`;
+  });
+  return `<svg viewBox="0 0 ${size} ${size}" class="bohr" role="img" aria-label="Bohr model of ${t(el.name)}">
+    ${rings}
+    <circle class="bohr-nucleus" cx="${c}" cy="${c}" r="17"/>
+    <text class="bohr-sym" x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central">${el.s}</text>
+    ${groups}
+  </svg>`;
+}
+
+function mediaBlock(el) {
+  const img = typeof IMAGES !== "undefined" ? IMAGES[el.n] : null;
+  const diagram = `<div class="media-diagram">${bohrSVG(el)}</div>`;
+  if (!img) {
+    return `<div class="detail-media" data-mode="diagram">
+      <div class="media-frame">${diagram}</div>
+      <div class="media-bar"><span class="media-credit">${UI[lang].noPhoto}</span></div>
+    </div>`;
+  }
+  return `<div class="detail-media" data-mode="photo">
+    <div class="media-frame">
+      <img class="media-photo" src="${img.file}" alt="${t(el.name)}" loading="lazy">
+      ${diagram}
+    </div>
+    <div class="media-bar">
+      <div class="media-toggle" role="group">
+        <button type="button" data-mode="photo">${UI[lang].photo}</button>
+        <button type="button" data-mode="diagram">${UI[lang].diagram}</button>
+      </div>
+      <span class="media-credit">${img.credit}</span>
+    </div>
+  </div>`;
+}
+
 // --- Detail panel ---
 const fmt = (value, unit = "") =>
   (value === null || value === undefined) ? "—" : `${value}${unit}`;
@@ -113,6 +180,7 @@ function openDetail(el) {
         <div class="mass">${UI[lang].mass}: ${fmt(el.mass, " u")}</div>
       </div>
     </div>
+    ${mediaBlock(el)}
     <p class="detail-about">${t(el.about)}</p>
     <div class="detail-grid">
       <div class="stat"><div class="label">${L.phase}</div><div class="value">${t(PHASES[el.phase])}</div></div>
@@ -125,6 +193,12 @@ function openDetail(el) {
       <div class="stat wide"><div class="label">${L.disc}</div><div class="value">${t(el.disc)}</div></div>
     </div>`;
   detailEl.querySelector(".detail-close").addEventListener("click", closeDetail);
+
+  // Photo / diagram toggle
+  const media = detailEl.querySelector(".detail-media");
+  media.querySelectorAll(".media-toggle button").forEach(btn =>
+    btn.addEventListener("click", () => { media.dataset.mode = btn.dataset.mode; }));
+
   detailEl.hidden = false;
   overlayEl.hidden = false;
   detailEl.scrollTop = 0;

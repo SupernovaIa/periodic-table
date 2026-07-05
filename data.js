@@ -46,6 +46,9 @@ const UI = {
     footer: "118 elements · data for educational purposes",
     close: "Close",
     mass: "Atomic mass",
+    photo: "Photo",
+    diagram: "Atom",
+    noPhoto: "No photo available — showing atomic model",
     labels: {
       phase: "State (room temp.)",
       dens: "Density",
@@ -65,6 +68,9 @@ const UI = {
     footer: "118 elementos · datos con fines educativos",
     close: "Cerrar",
     mass: "Masa atómica",
+    photo: "Foto",
+    diagram: "Átomo",
+    noPhoto: "Sin foto disponible — se muestra el modelo atómico",
     labels: {
       phase: "Estado (amb.)",
       dens: "Densidad",

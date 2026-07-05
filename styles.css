@@ -198,6 +198,66 @@ main { max-width: 1240px; margin: 0 auto; }
 .detail-title h2 { font-size: 1.7rem; font-weight: 800; }
 .detail-title .mass { color: var(--text-dim); font-size: .9rem; margin-top: 4px; }
 
+/* --- Media (photo / Bohr diagram) --- */
+.detail-media { margin: 18px 0 4px; }
+.media-frame {
+  position: relative;
+  height: 210px;
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(120px 120px at 50% 45%, color-mix(in srgb, var(--cat) 18%, transparent), transparent),
+    var(--bg-soft);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+}
+.media-photo {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.media-diagram { width: 100%; height: 100%; place-items: center; }
+/* Show one or the other based on mode */
+.detail-media[data-mode="photo"]   .media-diagram { display: none; }
+.detail-media[data-mode="photo"]   .media-photo   { display: block; }
+.detail-media[data-mode="diagram"] .media-photo   { display: none; }
+.detail-media[data-mode="diagram"] .media-diagram { display: grid; }
+
+.media-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 8px; min-height: 24px;
+}
+.media-toggle {
+  display: inline-flex; gap: 2px; flex: none;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 999px; padding: 2px;
+}
+.media-toggle button {
+  border: none; background: transparent; cursor: pointer;
+  color: var(--text-dim); font-size: .72rem; font-weight: 600;
+  padding: 4px 11px; border-radius: 999px; transition: background .15s, color .15s;
+}
+.media-toggle button:hover { color: var(--text); }
+.detail-media[data-mode="photo"]   .media-toggle button[data-mode="photo"],
+.detail-media[data-mode="diagram"] .media-toggle button[data-mode="diagram"] {
+  background: var(--accent); color: #0b0f1a;
+}
+.media-credit {
+  font-size: .66rem; color: var(--text-dim);
+  text-align: right; line-height: 1.3; overflow: hidden;
+}
+
+/* Bohr model */
+.bohr { width: 190px; height: 190px; }
+.bohr-ring { fill: none; stroke: color-mix(in srgb, var(--cat) 45%, transparent); stroke-width: 1; }
+.bohr-nucleus { fill: color-mix(in srgb, var(--cat) 75%, var(--bg-soft)); stroke: var(--cat); stroke-width: 1.5; }
+.bohr-sym { fill: var(--text); font-size: 15px; font-weight: 800; }
+.bohr-e { fill: var(--cat); }
+.bohr-shell { animation-name: bohr-spin; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes bohr-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .bohr-shell { animation: none; } }
+
 .detail-about {
   color: var(--text-dim); font-size: .92rem; line-height: 1.55;
   margin: 16px 0 22px; padding-left: 12px;
