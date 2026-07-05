@@ -426,9 +426,9 @@ main { max-width: 1240px; margin: 0 auto; }
 /* --- Standard Model particle table --- */
 .particle-table {
   display: grid;
-  grid-template-columns: repeat(5, minmax(74px, 1fr));
-  gap: 7px;
-  min-width: 470px; max-width: 680px;
+  grid-template-columns: repeat(5, minmax(64px, 1fr));
+  gap: 6px;
+  min-width: 420px; max-width: 590px;
   margin: 6px auto 0;
 }
 .particle {
