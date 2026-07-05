@@ -1,21 +1,25 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tabla Periódica Interactiva</title>
+  <title>Interactive Periodic Table</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="site-header">
-    <h1>Tabla Periódica Interactiva</h1>
-    <p class="subtitle">Haz clic en cualquier elemento para ver su ficha completa</p>
+    <div class="lang-switch" id="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="es">ES</button>
+    </div>
+    <h1 id="title">Interactive Periodic Table</h1>
+    <p class="subtitle" id="subtitle">Click any element to see its full profile</p>
   </header>
 
   <main>
     <section class="controls">
       <div class="search-box">
-        <input type="search" id="search" placeholder="Buscar por nombre, símbolo o número…" autocomplete="off">
+        <input type="search" id="search" placeholder="Search by name, symbol or number…" autocomplete="off">
       </div>
       <div class="legend" id="legend"></div>
     </section>
@@ -25,12 +29,11 @@
     </div>
   </main>
 
-  <!-- Panel de detalle -->
   <div class="overlay" id="overlay" hidden></div>
   <aside class="detail-panel" id="detail" hidden aria-live="polite"></aside>
 
   <footer class="site-footer">
-    <span>118 elementos · datos con fines educativos</span>
+    <span id="footer-text">118 elements · data for educational purposes</span>
   </footer>
 
   <script src="data.js"></script>
