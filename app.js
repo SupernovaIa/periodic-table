@@ -9,6 +9,7 @@ const langEl    = document.getElementById("lang");
 
 let activeCategory = null;                 // legend filter
 let openElement = null;                    // element shown in the panel, if any
+let inlineEl = null;                       // inline detail card (central gap)
 let lang = localStorage.getItem("lang") || "en";
 
 // Resolve a possibly-bilingual field: returns field[lang] if it's an {en,es} object,
@@ -22,6 +23,13 @@ function buildTable() {
   frag.appendChild(makePlaceholder("89–103", 3, 7, "actinide"));
   for (const el of ELEMENTS) frag.appendChild(makeCell(el));
   tableEl.appendChild(frag);
+
+  // Inline detail card that fills the empty top-center region of the table.
+  inlineEl = document.createElement("div");
+  inlineEl.className = "inline-detail";
+  inlineEl.hidden = true;
+  inlineEl.innerHTML = '<div class="inline-detail-inner"></div>';
+  tableEl.appendChild(inlineEl);
 }
 
 function makeCell(el) {
@@ -162,16 +170,12 @@ function mediaBlock(el) {
   </div>`;
 }
 
-// --- Detail panel ---
+// --- Detail content builders (shared by inline card and side drawer) ---
 const fmt = (value, unit = "") =>
   (value === null || value === undefined) ? "—" : `${value}${unit}`;
 
-function openDetail(el) {
-  openElement = el;
-  const L = UI[lang].labels;
-  detailEl.style.setProperty("--cat", `var(--c-${el.cat})`);
-  detailEl.innerHTML = `
-    <button class="detail-close" aria-label="${UI[lang].close}">✕</button>
+function headHTML(el) {
+  return `
     <span class="detail-badge">${t(CATEGORIES[el.cat])}</span>
     <div class="detail-head">
       <div class="detail-symbol"><span class="n">${el.n}</span>${el.s}</div>
@@ -179,9 +183,12 @@ function openDetail(el) {
         <h2>${t(el.name)}</h2>
         <div class="mass">${UI[lang].mass}: ${fmt(el.mass, " u")}</div>
       </div>
-    </div>
-    ${mediaBlock(el)}
-    <p class="detail-about">${t(el.about)}</p>
+    </div>`;
+}
+
+function statsHTML(el) {
+  const L = UI[lang].labels;
+  return `
     <div class="detail-grid">
       <div class="stat"><div class="label">${L.phase}</div><div class="value">${t(PHASES[el.phase])}</div></div>
       <div class="stat"><div class="label">${L.dens}</div><div class="value">${fmt(el.dens, " g/cm³")}</div></div>
@@ -192,13 +199,86 @@ function openDetail(el) {
       <div class="stat wide"><div class="label">${L.cfg}</div><div class="value">${el.cfg}</div></div>
       <div class="stat wide"><div class="label">${L.disc}</div><div class="value">${t(el.disc)}</div></div>
     </div>`;
-  detailEl.querySelector(".detail-close").addEventListener("click", closeDetail);
+}
 
-  // Photo / diagram toggle
-  const media = detailEl.querySelector(".detail-media");
+// Compact stats (chips) for the inline card, where vertical space is tight.
+// Curated subset that fits the central gap without scrolling.
+function statsCompactHTML(el) {
+  const L = UI[lang].labels;
+  const items = [
+    [L.phase, t(PHASES[el.phase]), false],
+    [L.dens, fmt(el.dens, " g/cm³"), false],
+    [L.melt, fmt(el.melt, " °C"), false],
+    [L.boil, fmt(el.boil, " °C"), false],
+    [L.eneg, fmt(el.eneg), false]
+  ];
+  return `<div class="cstats">` + items.map(([k, v, wide]) =>
+    `<div class="cstat${wide ? " wide" : ""}"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("") + `</div>`;
+}
+
+function wireMedia(scope) {
+  const media = scope.querySelector(".detail-media");
+  if (!media) return;
   media.querySelectorAll(".media-toggle button").forEach(btn =>
     btn.addEventListener("click", () => { media.dataset.mode = btn.dataset.mode; }));
+}
 
+function markSelected(el) {
+  tableEl.querySelectorAll(".element.selected").forEach(c => c.classList.remove("selected"));
+  if (el) {
+    const cell = tableEl.querySelector(`.element[data-n="${el.n}"]`);
+    if (cell) cell.classList.add("selected");
+  }
+}
+
+const isWide = () => window.matchMedia("(min-width: 900px)").matches;
+
+// Choose inline card (central gap) on wide screens, side drawer on narrow ones.
+function openDetail(el) {
+  openElement = el;
+  markSelected(el);
+  if (isWide()) renderInline(el); else renderDrawer(el);
+}
+
+function renderInline(el) {
+  detailEl.hidden = true;
+  overlayEl.hidden = true;
+  const inner = inlineEl.querySelector(".inline-detail-inner");
+  inner.style.setProperty("--cat", `var(--c-${el.cat})`);
+  inner.innerHTML = `
+    <button class="detail-close" aria-label="${UI[lang].close}">✕</button>
+    <div class="idetail-media">${mediaBlock(el)}</div>
+    <div class="idetail-body">
+      <div class="detail-head">
+        <div class="detail-symbol"><span class="n">${el.n}</span>${el.s}</div>
+        <div class="detail-title">
+          <div class="idetail-titlerow">
+            <h2>${t(el.name)}</h2>
+            <span class="detail-badge">${t(CATEGORIES[el.cat])}</span>
+          </div>
+          <div class="mass">${UI[lang].mass}: ${fmt(el.mass, " u")}</div>
+        </div>
+      </div>
+      <p class="detail-about">${t(el.about)}</p>
+      ${statsCompactHTML(el)}
+    </div>`;
+  inner.querySelector(".detail-close").addEventListener("click", closeDetail);
+  wireMedia(inner);
+  inlineEl.hidden = false;
+  inner.scrollTop = 0;
+}
+
+function renderDrawer(el) {
+  if (inlineEl) inlineEl.hidden = true;
+  detailEl.style.setProperty("--cat", `var(--c-${el.cat})`);
+  detailEl.innerHTML = `
+    <button class="detail-close" aria-label="${UI[lang].close}">✕</button>
+    ${headHTML(el)}
+    ${mediaBlock(el)}
+    <p class="detail-about">${t(el.about)}</p>
+    ${statsHTML(el)}`;
+  detailEl.querySelector(".detail-close").addEventListener("click", closeDetail);
+  wireMedia(detailEl);
   detailEl.hidden = false;
   overlayEl.hidden = false;
   detailEl.scrollTop = 0;
@@ -206,8 +286,10 @@ function openDetail(el) {
 
 function closeDetail() {
   openElement = null;
+  markSelected(null);
   detailEl.hidden = true;
   overlayEl.hidden = true;
+  if (inlineEl) inlineEl.hidden = true;
 }
 
 overlayEl.addEventListener("click", closeDetail);
