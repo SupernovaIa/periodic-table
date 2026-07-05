@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabla Periódica Interactiva</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>Tabla Periódica Interactiva</h1>
+    <p class="subtitle">Haz clic en cualquier elemento para ver su ficha completa</p>
+  </header>
+
+  <main>
+    <section class="controls">
+      <div class="search-box">
+        <input type="search" id="search" placeholder="Buscar por nombre, símbolo o número…" autocomplete="off">
+      </div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <div class="table-scroll">
+      <div class="periodic-table" id="table"></div>
+    </div>
+  </main>
+
+  <!-- Panel de detalle -->
+  <div class="overlay" id="overlay" hidden></div>
+  <aside class="detail-panel" id="detail" hidden aria-live="polite"></aside>
+
+  <footer class="site-footer">
+    <span>118 elementos · datos con fines educativos</span>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
