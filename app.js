@@ -284,6 +284,48 @@ function applyTimeline() {
 timelineToggle.addEventListener("click", () => { timelineOn = !timelineOn; applyTimeline(); });
 timelineRange.addEventListener("input", () => { timelineYear = +timelineRange.value; applyTimeline(); });
 
+// --- Keyboard navigation: arrow keys move focus across the grid ---
+// Roving tabindex: only one cell is tab-focusable at a time; arrows walk the
+// grid by (row, col), skipping empty cells to the next real element.
+const ARROWS = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] };
+const cellByPos = new Map();
+
+function indexCells() {
+  cellByPos.clear();
+  tableEl.querySelectorAll(".element:not(.f-placeholder)").forEach(cell => {
+    const el = ELEMENTS.find(e => e.n === +cell.dataset.n);
+    cellByPos.set(`${el.row},${el.col}`, cell);
+    cell.tabIndex = -1;
+  });
+  const first = tableEl.querySelector('.element[data-n="1"]');
+  if (first) first.tabIndex = 0;
+}
+
+function neighborCell(cell, key) {
+  const el = ELEMENTS.find(e => e.n === +cell.dataset.n);
+  let [row, col] = [el.row, el.col];
+  const [dr, dc] = ARROWS[key];
+  while (true) {
+    row += dr; col += dc;
+    if (row < 1 || row > 10 || col < 1 || col > 18) return null;
+    const next = cellByPos.get(`${row},${col}`);
+    if (next) return next;
+  }
+}
+
+tableEl.addEventListener("keydown", e => {
+  const cell = e.target;
+  if (!cell.classList || !cell.classList.contains("element") || cell.classList.contains("f-placeholder")) return;
+  if (!(e.key in ARROWS)) return;
+  e.preventDefault();
+  const next = neighborCell(cell, e.key);
+  if (next) {
+    cell.tabIndex = -1;
+    next.tabIndex = 0;
+    next.focus();
+  }
+});
+
 // --- Bohr atomic model (computed from atomic number, aufbau order) ---
 // Electrons per principal shell (n). Aufbau reproduces the standard Bohr counts
 // (e.g. K -> 2,8,8,1). Minor ground-state exceptions (Cr, Cu…) are ignored — fine
@@ -873,5 +915,6 @@ buildLegend();
 buildParticleTable();
 buildParticleLegend();
 initTimeline();
+indexCells();
 applyLanguage();
 applyView();
