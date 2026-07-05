@@ -49,6 +49,9 @@ const UI = {
     photo: "Photo",
     diagram: "Atom",
     noPhoto: "No photo available — showing atomic model",
+    colorBy: "Color by",
+    noData: "no data",
+    trends: { category: "Category", eneg: "Electroneg.", dens: "Density", melt: "Melting", boil: "Boiling", mass: "Mass" },
     labels: {
       phase: "State (room temp.)",
       dens: "Density",
@@ -72,6 +75,9 @@ const UI = {
     photo: "Foto",
     diagram: "Átomo",
     noPhoto: "Sin foto disponible — se muestra el modelo atómico",
+    colorBy: "Colorear por",
+    noData: "sin dato",
+    trends: { category: "Categoría", eneg: "Electroneg.", dens: "Densidad", melt: "Fusión", boil: "Ebullición", mass: "Masa" },
     labels: {
       phase: "Estado (amb.)",
       dens: "Densidad",

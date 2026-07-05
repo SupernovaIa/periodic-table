@@ -9,8 +9,11 @@ const langEl          = document.getElementById("lang");
 const viewEl          = document.getElementById("view");
 const particleTableEl = document.getElementById("particle-table");
 const particleLegendEl = document.getElementById("particle-legend");
+const colorbyEl       = document.getElementById("colorby");
+const trendLegendEl   = document.getElementById("trend-legend");
 
 let activeCategory = null;                 // legend filter
+let colorMode = localStorage.getItem("colorMode") || "category"; // "category" or a property key
 let openElement = null;                    // element shown in the panel, if any
 let openParticle = null;                   // particle shown in the panel, if any
 let inlineEl = null;                       // central floating detail card
@@ -109,6 +112,133 @@ function applyFilters() {
 }
 
 searchEl.addEventListener("input", applyFilters);
+
+// --- Trends: color the table by a numeric property (heatmap) ---
+// Only properties already present in the data. Density spans ~5 orders of
+// magnitude, so it uses a log scale; the rest read fine linearly.
+// `min` overrides the low end of the color domain: gases are extreme low-density
+// outliers that would otherwise squash every solid into the top of the ramp, so
+// density is floored at 0.1 g/cm³ (all gases collapse to the min color and the
+// solids, 0.5–22.6, spread across the whole gradient).
+const TREND_PROPS = {
+  eneg: { scale: "linear", unit: "" },
+  dens: { scale: "log",    unit: " g/cm³", min: 0.1 },
+  melt: { scale: "linear", unit: " °C" },
+  boil: { scale: "linear", unit: " °C" },
+  mass: { scale: "linear", unit: " u" }
+};
+
+// Sequential low→high ramp (indigo → teal → lime → amber). Kept distinct from
+// the category hues; the gradient legend makes the mapping explicit.
+const RAMP = [
+  [0.00, [53, 70, 138]],
+  [0.35, [42, 168, 176]],
+  [0.65, [154, 210, 79]],
+  [1.00, [255, 207, 92]]
+];
+function rampColor(x) {
+  const c = Math.max(0, Math.min(1, x));
+  for (let i = 1; i < RAMP.length; i++) {
+    if (c <= RAMP[i][0]) {
+      const [a0, ca] = RAMP[i - 1], [b0, cb] = RAMP[i];
+      const f = (c - a0) / (b0 - a0 || 1);
+      return ca.map((v, k) => Math.round(v + (cb[k] - v) * f));
+    }
+  }
+  return RAMP[RAMP.length - 1][1];
+}
+const luminance = ([r, g, b]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+
+function trendDomain(key) {
+  const cfg = TREND_PROPS[key];
+  const vals = ELEMENTS.map(e => e[key]).filter(v => v != null);
+  const dataLo = Math.min(...vals), dataHi = Math.max(...vals);
+  const lo = cfg.min != null ? cfg.min : dataLo;
+  const hi = cfg.max != null ? cfg.max : dataHi;
+  // Flag when values fall outside the (overridden) domain, so the legend can
+  // show "≤"/"≥" instead of implying the endpoint is the true extreme.
+  return { lo, hi, scale: cfg.scale, clampLo: dataLo < lo, clampHi: dataHi > hi };
+}
+
+// Compact number for the gradient legend endpoints.
+function fmtNum(v) {
+  const a = Math.abs(v);
+  if (a >= 1000) return String(Math.round(v));
+  if (a >= 1)    return String(Math.round(v * 100) / 100);
+  return String(v);
+}
+
+function renderTrendLegend() {
+  const { lo, hi, clampLo, clampHi } = trendDomain(colorMode);
+  const unit = TREND_PROPS[colorMode].unit;
+  const name = colorMode === "mass" ? UI[lang].mass : UI[lang].labels[colorMode];
+  const stops = RAMP.map(s => `rgb(${s[1].join(",")}) ${s[0] * 100}%`).join(",");
+  const min = `${clampLo ? "≤" : ""}${fmtNum(lo)}${unit}`;
+  const max = `${clampHi ? "≥" : ""}${fmtNum(hi)}${unit}`;
+  trendLegendEl.innerHTML = `
+    <span class="trend-name">${name}</span>
+    <span class="trend-min">${min}</span>
+    <span class="trend-bar" style="background:linear-gradient(90deg,${stops})"></span>
+    <span class="trend-max">${max}</span>
+    <span class="trend-nodata"><i></i>${UI[lang].noData}</span>`;
+}
+
+// Paint every element cell for the current color mode. In "category" mode the
+// inline styles are cleared so the stylesheet's --cat coloring takes over again.
+function applyColorMode() {
+  const trend = colorMode !== "category" && view === "elements";
+  legendEl.hidden = view !== "elements" || trend;
+  trendLegendEl.hidden = !trend;
+  colorbyEl.hidden = view !== "elements";
+  colorbyEl.querySelectorAll("button").forEach(b =>
+    b.classList.toggle("active", b.dataset.prop === colorMode));
+
+  const cells = tableEl.querySelectorAll(".element:not(.f-placeholder)");
+  if (!trend) {
+    cells.forEach(cell => {
+      cell.style.background = "";
+      cell.style.borderColor = "";
+      cell.classList.remove("on-light", "nodata");
+    });
+    return;
+  }
+
+  const { lo, hi, scale } = trendDomain(colorMode);
+  const tx = v => scale === "log" ? Math.log(v) : v;
+  const L = tx(lo), span = (tx(hi) - L) || 1;
+  cells.forEach(cell => {
+    const el = ELEMENTS.find(e => e.n === +cell.dataset.n);
+    const v = el[colorMode];
+    if (v == null) {
+      cell.style.background = "var(--bg-soft)";
+      cell.style.borderColor = "var(--border)";
+      cell.classList.remove("on-light");
+      cell.classList.add("nodata");
+      return;
+    }
+    const rgb = rampColor((tx(v) - L) / span);
+    cell.style.background = `rgb(${rgb.join(",")})`;
+    cell.style.borderColor = "rgba(255,255,255,.16)";
+    cell.classList.remove("nodata");
+    cell.classList.toggle("on-light", luminance(rgb) > 0.55);
+  });
+  renderTrendLegend();
+}
+
+function setColorMode(mode) {
+  colorMode = mode;
+  localStorage.setItem("colorMode", mode);
+  // Category filtering only makes sense in category mode; clear it on switch.
+  if (mode !== "category" && activeCategory) {
+    activeCategory = null;
+    legendEl.querySelectorAll(".legend-item").forEach(i => i.classList.remove("dimmed"));
+    applyFilters();
+  }
+  applyColorMode();
+}
+
+colorbyEl.querySelectorAll("button").forEach(b =>
+  b.addEventListener("click", () => setColorMode(b.dataset.prop)));
 
 // --- Bohr atomic model (computed from atomic number, aufbau order) ---
 // Electrons per principal shell (n). Aufbau reproduces the standard Bohr counts
@@ -540,6 +670,7 @@ function applyView() {
     b.classList.toggle("active", b.dataset.view === view));
   closeDetail();
   updateHeader();
+  applyColorMode();
 }
 
 function setView(next) {
@@ -586,6 +717,13 @@ function applyLanguage() {
   // View switch buttons
   viewEl.querySelector('[data-view="elements"]').textContent = PARTICLE_UI[lang].elements;
   viewEl.querySelector('[data-view="particles"]').textContent = PARTICLE_UI[lang].particles;
+
+  // Color-by control (label + pill names) and, if active, the gradient legend
+  document.getElementById("colorby-label").textContent = u.colorBy;
+  colorbyEl.querySelectorAll("button").forEach(b => {
+    b.textContent = u.trends[b.dataset.prop];
+  });
+  if (colorMode !== "category" && view === "elements") renderTrendLegend();
 
   // Language switch buttons
   langEl.querySelectorAll("button").forEach(b =>
