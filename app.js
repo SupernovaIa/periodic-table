@@ -14,6 +14,7 @@ let activeCategory = null;                 // legend filter
 let openElement = null;                    // element shown in the panel, if any
 let openParticle = null;                   // particle shown in the panel, if any
 let inlineEl = null;                       // central floating detail card
+let orbStop = null;                        // stops the 3D particle animation
 let lang = localStorage.getItem("lang") || "en";
 let view = localStorage.getItem("view") || "elements";
 
@@ -244,6 +245,7 @@ function openDetail(el) {
 }
 
 function renderCentralMedia(el) {
+  stopOrb();
   const img = typeof IMAGES !== "undefined" ? IMAGES[el.n] : null;
   const inner = inlineEl.querySelector(".inline-detail-inner");
   inner.style.setProperty("--cat", `var(--c-${el.cat})`);
@@ -287,6 +289,7 @@ function renderDrawer(el, { media = true, overlay = true } = {}) {
 function closeDetail() {
   openElement = null;
   openParticle = null;
+  stopOrb();
   clearSelected();
   detailEl.hidden = true;
   overlayEl.hidden = true;
@@ -350,15 +353,92 @@ function openParticleDetail(p) {
 }
 
 function renderParticleCentral(p) {
+  stopOrb();
   const inner = inlineEl.querySelector(".inline-detail-inner");
   inner.style.setProperty("--cat", `var(--pc-${p.cat})`);
   inner.innerHTML = `
     <div class="pmedia">
-      <div class="pmedia-sym">${p.s}</div>
+      <div class="porb-wrap">
+        <canvas class="porb"></canvas>
+        <span class="porb-sym">${p.s}</span>
+      </div>
       <div class="pmedia-name">${t(p.name)}</div>
       <span class="detail-badge">${t(PARTICLE_CATEGORIES[p.cat])}</span>
     </div>`;
   inlineEl.hidden = false;
+  const color = getComputedStyle(document.documentElement)
+    .getPropertyValue(`--pc-${p.cat}`).trim() || "#b57edc";
+  orbStop = startParticleOrb(inner.querySelector(".porb"), color);
+}
+
+function stopOrb() {
+  if (orbStop) { orbStop(); orbStop = null; }
+}
+
+// 3D "particle": a sphere of points that rotates and pulses (wobbles), drawn on
+// a canvas. No libraries — just projection + requestAnimationFrame.
+function startParticleOrb(canvas, color) {
+  const ctx = canvas.getContext("2d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const resize = () => {
+    const r = canvas.getBoundingClientRect();
+    canvas.width = Math.max(1, r.width * dpr);
+    canvas.height = Math.max(1, r.height * dpr);
+  };
+  resize();
+
+  // Points spread evenly on a sphere (Fibonacci lattice).
+  const N = 300, pts = [];
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < N; i++) {
+    const y = 1 - (i / (N - 1)) * 2;
+    const rad = Math.sqrt(Math.max(0, 1 - y * y));
+    const th = golden * i;
+    pts.push({ x: Math.cos(th) * rad, y, z: Math.sin(th) * rad, ph: i * 0.7 });
+  }
+
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let raf = 0, t0 = null;
+
+  function draw(t) {
+    const w = canvas.width, h = canvas.height;
+    const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.34;
+    ctx.clearRect(0, 0, w, h);
+    const ay = t * 0.5, ax = Math.sin(t * 0.3) * 0.35;
+    const cY = Math.cos(ay), sY = Math.sin(ay), cX = Math.cos(ax), sX = Math.sin(ax);
+    const drawn = [];
+    for (const p of pts) {
+      const wob = 1 + 0.11 * Math.sin(t * 2.2 + p.ph);      // organic pulse
+      const x = p.x * wob, y = p.y * wob, z = p.z * wob;
+      const x1 = x * cY - z * sY, z1 = x * sY + z * cY;      // rotate Y
+      const y1 = y * cX - z1 * sX, z2 = y * sX + z1 * cX;    // rotate X
+      const persp = 1 / (1.7 - z2 * 0.6);
+      drawn.push({ sx: cx + x1 * R * persp, sy: cy + y1 * R * persp, z: z2 });
+    }
+    drawn.sort((a, b) => a.z - b.z);                          // back-to-front
+    for (const d of drawn) {
+      const depth = (d.z + 1) / 2;                            // 0..1
+      ctx.globalAlpha = 0.22 + depth * 0.78;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(d.sx, d.sy, (1.3 + depth * 2.7) * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function frame(ts) {
+    if (t0 == null) t0 = ts;
+    draw((ts - t0) / 1000);
+    raf = requestAnimationFrame(frame);
+  }
+
+  if (reduced) { draw(0); }
+  else { raf = requestAnimationFrame(frame); }
+
+  const onResize = () => resize();
+  window.addEventListener("resize", onResize);
+  return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); };
 }
 
 function renderParticleDrawer(p, { overlay = true } = {}) {
