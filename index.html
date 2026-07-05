@@ -14,6 +14,10 @@
     </div>
     <h1 id="title">Interactive Periodic Table</h1>
     <p class="subtitle" id="subtitle">Click any element to see its full profile</p>
+    <div class="view-switch" id="view" role="group" aria-label="View">
+      <button type="button" data-view="elements">Elements</button>
+      <button type="button" data-view="particles">Particles</button>
+    </div>
   </header>
 
   <main>
@@ -22,10 +26,12 @@
         <input type="search" id="search" placeholder="Search by name, symbol or number…" autocomplete="off">
       </div>
       <div class="legend" id="legend"></div>
+      <div class="legend" id="particle-legend" hidden></div>
     </section>
 
     <div class="table-scroll">
       <div class="periodic-table" id="table"></div>
+      <div class="particle-table" id="particle-table" hidden></div>
     </div>
   </main>
 
@@ -38,6 +44,7 @@
 
   <script src="data.js"></script>
   <script src="images.js"></script>
+  <script src="particles.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

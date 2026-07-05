@@ -20,9 +20,16 @@
   --c-lanthanide:            #ff7ac1;
   --c-actinide:              #ff6b96;
   --c-unknown:               #8794b3;
+
+  /* Standard Model particle categories */
+  --pc-quark:        #b57edc;
+  --pc-lepton:       #5fd08a;
+  --pc-gauge-boson:  #ff8a6b;
+  --pc-scalar-boson: #ffd76b;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -363,6 +370,76 @@ main { max-width: 1240px; margin: 0 auto; }
 @media (max-width: 899px) {
   .inline-detail { display: none !important; }
 }
+
+/* --- View switch (Elements / Particles) --- */
+.view-switch {
+  display: inline-flex; gap: 2px; margin-top: 16px;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px;
+}
+.view-switch button {
+  border: none; background: transparent; cursor: pointer;
+  color: var(--text-dim); font-size: .86rem; font-weight: 700;
+  padding: 7px 20px; border-radius: 999px; transition: background .15s, color .15s;
+}
+.view-switch button:hover { color: var(--text); }
+.view-switch button.active { background: linear-gradient(90deg, #8ec5ff, #c48bff); color: #0b0f1a; }
+
+.legend-item.static { cursor: default; }
+.legend-item.static:hover { color: var(--text-dim); }
+
+/* --- Standard Model particle table --- */
+.particle-table {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(96px, 1fr));
+  gap: 8px;
+  min-width: 580px; max-width: 860px;
+  margin: 6px auto 0;
+}
+.particle {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--cat) 50%, transparent);
+  background: color-mix(in srgb, var(--cat) 18%, var(--panel));
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s;
+  overflow: hidden;
+}
+.particle:hover, .particle:focus-visible {
+  transform: translateY(-3px) scale(1.05);
+  background: color-mix(in srgb, var(--cat) 30%, var(--panel));
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .5), 0 0 0 1px var(--cat);
+  z-index: 5; outline: none;
+}
+.particle .p-charge { position: absolute; top: 6px; right: 8px; font-size: .64rem; color: var(--text-dim); }
+.particle .p-spin   { position: absolute; top: 6px; left: 8px;  font-size: .64rem; color: var(--text-dim); }
+.particle .p-sym    { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 800; line-height: 1; }
+.particle .p-sym sub { font-size: .55em; font-weight: 700; }
+.particle .p-name   { font-size: .64rem; color: var(--text-dim); text-align: center; line-height: 1.15; }
+.particle .p-mass   { font-size: .56rem; color: var(--text-dim); text-align: center; white-space: nowrap; }
+.particle.selected  { box-shadow: 0 0 0 2px var(--cat), 0 6px 18px rgba(0, 0, 0, .5); z-index: 4; }
+
+/* Particle central hero (reuses .inline-detail container) */
+.pmedia {
+  position: absolute; inset: 0;
+  display: grid; place-content: center; justify-items: center; gap: 10px;
+  text-align: center; padding: 28px;
+  background:
+    radial-gradient(240px 240px at 50% 45%, color-mix(in srgb, var(--cat) 24%, transparent), transparent),
+    var(--bg-soft);
+}
+.pmedia-sym { font-size: clamp(4rem, 12vw, 7rem); font-weight: 800; color: var(--cat); line-height: 1; }
+.pmedia-sym sub { font-size: .5em; }
+.pmedia-name { font-size: 1.5rem; font-weight: 700; }
+.pmedia .detail-badge { position: static; }
+
+/* Particle symbol tile in the drawer */
+.detail-symbol--particle { color: var(--cat); font-weight: 800; }
+.detail-symbol--particle sub { font-size: .5em; }
 
 .site-footer { text-align: center; color: var(--text-dim); font-size: .8rem; margin-top: 40px; }
 

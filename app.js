@@ -1,16 +1,21 @@
 // Interactive periodic table render + i18n (en / es).
 
-const tableEl   = document.getElementById("table");
-const legendEl  = document.getElementById("legend");
-const searchEl  = document.getElementById("search");
-const detailEl  = document.getElementById("detail");
-const overlayEl = document.getElementById("overlay");
-const langEl    = document.getElementById("lang");
+const tableEl         = document.getElementById("table");
+const legendEl        = document.getElementById("legend");
+const searchEl        = document.getElementById("search");
+const detailEl        = document.getElementById("detail");
+const overlayEl       = document.getElementById("overlay");
+const langEl          = document.getElementById("lang");
+const viewEl          = document.getElementById("view");
+const particleTableEl = document.getElementById("particle-table");
+const particleLegendEl = document.getElementById("particle-legend");
 
 let activeCategory = null;                 // legend filter
 let openElement = null;                    // element shown in the panel, if any
-let inlineEl = null;                       // inline detail card (central gap)
+let openParticle = null;                   // particle shown in the panel, if any
+let inlineEl = null;                       // central floating detail card
 let lang = localStorage.getItem("lang") || "en";
+let view = localStorage.getItem("view") || "elements";
 
 // Resolve a possibly-bilingual field: returns field[lang] if it's an {en,es} object,
 // otherwise the value itself (used for `disc`, which is often a plain proper name).
@@ -24,12 +29,13 @@ function buildTable() {
   for (const el of ELEMENTS) frag.appendChild(makeCell(el));
   tableEl.appendChild(frag);
 
-  // Inline detail card that fills the empty top-center region of the table.
+  // Central floating detail card. Lives on <body> (not inside a table) so it
+  // shows regardless of which view's table is currently visible.
   inlineEl = document.createElement("div");
   inlineEl.className = "inline-detail";
   inlineEl.hidden = true;
   inlineEl.innerHTML = '<div class="inline-detail-inner"></div>';
-  tableEl.appendChild(inlineEl);
+  document.body.appendChild(inlineEl);
 }
 
 function makeCell(el) {
@@ -208,8 +214,11 @@ function wireMedia(scope) {
     btn.addEventListener("click", () => { media.dataset.mode = btn.dataset.mode; }));
 }
 
+function clearSelected() {
+  document.querySelectorAll(".selected").forEach(c => c.classList.remove("selected"));
+}
 function markSelected(el) {
-  tableEl.querySelectorAll(".element.selected").forEach(c => c.classList.remove("selected"));
+  clearSelected();
   if (el) {
     const cell = tableEl.querySelector(`.element[data-n="${el.n}"]`);
     if (cell) cell.classList.add("selected");
@@ -223,6 +232,7 @@ const isWide = () => window.matchMedia("(min-width: 900px)").matches;
 // visible). Narrow screens: everything goes in the drawer, image included.
 function openDetail(el) {
   openElement = el;
+  openParticle = null;
   markSelected(el);
   if (isWide()) {
     renderCentralMedia(el);
@@ -276,7 +286,8 @@ function renderDrawer(el, { media = true, overlay = true } = {}) {
 
 function closeDetail() {
   openElement = null;
-  markSelected(null);
+  openParticle = null;
+  clearSelected();
   detailEl.hidden = true;
   overlayEl.hidden = true;
   if (inlineEl) inlineEl.hidden = true;
@@ -285,14 +296,136 @@ function closeDetail() {
 overlayEl.addEventListener("click", closeDetail);
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeDetail(); });
 
+// --- Standard Model (particles) view ---
+function buildParticleTable() {
+  const frag = document.createDocumentFragment();
+  for (const p of PARTICLES) {
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "particle";
+    cell.style.setProperty("--cat", `var(--pc-${p.cat})`);
+    cell.style.gridColumn = p.col;
+    cell.style.gridRow = p.span ? `${p.row} / ${p.row + p.span}` : p.row;
+    if (p.span) cell.style.aspectRatio = "auto";
+    cell.dataset.pid = p.id;
+    cell.innerHTML = `
+      <span class="p-charge">${p.charge}</span>
+      <span class="p-spin">${p.spin}</span>
+      <span class="p-sym">${p.s}</span>
+      <span class="p-name"></span>
+      <span class="p-mass">${p.mass}</span>`;
+    cell.addEventListener("click", () => openParticleDetail(p));
+    frag.appendChild(cell);
+  }
+  particleTableEl.appendChild(frag);
+}
+
+function buildParticleLegend() {
+  const frag = document.createDocumentFragment();
+  for (const key of Object.keys(PARTICLE_CATEGORIES)) {
+    const item = document.createElement("div");
+    item.className = "legend-item static";
+    item.dataset.cat = key;
+    item.innerHTML = `
+      <span class="legend-swatch" style="background:var(--pc-${key})"></span>
+      <span class="legend-label"></span>`;
+    frag.appendChild(item);
+  }
+  particleLegendEl.appendChild(frag);
+}
+
+function openParticleDetail(p) {
+  openParticle = p;
+  openElement = null;
+  clearSelected();
+  const cell = particleTableEl.querySelector(`.particle[data-pid="${p.id}"]`);
+  if (cell) cell.classList.add("selected");
+  if (isWide()) {
+    renderParticleCentral(p);
+    renderParticleDrawer(p, { overlay: true });
+  } else {
+    if (inlineEl) inlineEl.hidden = true;
+    renderParticleDrawer(p, { overlay: true });
+  }
+}
+
+function renderParticleCentral(p) {
+  const inner = inlineEl.querySelector(".inline-detail-inner");
+  inner.style.setProperty("--cat", `var(--pc-${p.cat})`);
+  inner.innerHTML = `
+    <div class="pmedia">
+      <div class="pmedia-sym">${p.s}</div>
+      <div class="pmedia-name">${t(p.name)}</div>
+      <span class="detail-badge">${t(PARTICLE_CATEGORIES[p.cat])}</span>
+    </div>`;
+  inlineEl.hidden = false;
+}
+
+function renderParticleDrawer(p, { overlay = true } = {}) {
+  const L = PARTICLE_UI[lang].labels;
+  detailEl.style.setProperty("--cat", `var(--pc-${p.cat})`);
+  detailEl.innerHTML = `
+    <button class="detail-close" aria-label="${UI[lang].close}">✕</button>
+    <span class="detail-badge">${t(PARTICLE_CATEGORIES[p.cat])}</span>
+    <div class="detail-head">
+      <div class="detail-symbol detail-symbol--particle">${p.s}</div>
+      <div class="detail-title">
+        <h2>${t(p.name)}</h2>
+        <div class="mass">${L.mass}: ${p.mass}</div>
+      </div>
+    </div>
+    <p class="detail-about">${t(p.about)}</p>
+    <div class="detail-grid">
+      <div class="stat"><div class="label">${L.type}</div><div class="value">${t(PARTICLE_CATEGORIES[p.cat])}</div></div>
+      <div class="stat"><div class="label">${L.gen}</div><div class="value">${p.gen ?? "—"}</div></div>
+      <div class="stat"><div class="label">${L.charge}</div><div class="value">${p.charge}</div></div>
+      <div class="stat"><div class="label">${L.spin}</div><div class="value">${p.spin}</div></div>
+      <div class="stat"><div class="label">${L.year}</div><div class="value">${p.year}</div></div>
+      <div class="stat"><div class="label">${L.mass}</div><div class="value">${p.mass}</div></div>
+      <div class="stat wide"><div class="label">${L.role}</div><div class="value">${t(p.role)}</div></div>
+    </div>`;
+  detailEl.querySelector(".detail-close").addEventListener("click", closeDetail);
+  detailEl.hidden = false;
+  overlayEl.hidden = !overlay;
+  detailEl.scrollTop = 0;
+}
+
+function updateHeader() {
+  const particles = view === "particles";
+  document.getElementById("title").textContent = particles ? PARTICLE_UI[lang].title : UI[lang].title;
+  document.getElementById("subtitle").textContent = particles ? PARTICLE_UI[lang].subtitle : UI[lang].subtitle;
+  document.getElementById("footer-text").textContent = particles ? PARTICLE_UI[lang].footer : UI[lang].footer;
+}
+
+function applyView() {
+  const particles = view === "particles";
+  tableEl.hidden = particles;
+  particleTableEl.hidden = !particles;
+  document.querySelector(".search-box").hidden = particles;
+  legendEl.hidden = particles;
+  particleLegendEl.hidden = !particles;
+  viewEl.querySelectorAll("button").forEach(b =>
+    b.classList.toggle("active", b.dataset.view === view));
+  closeDetail();
+  updateHeader();
+}
+
+function setView(next) {
+  if (next === view) return;
+  view = next;
+  localStorage.setItem("view", view);
+  applyView();
+}
+
+viewEl.querySelectorAll("button").forEach(b =>
+  b.addEventListener("click", () => setView(b.dataset.view)));
+
 // --- i18n / language ---
 function applyLanguage() {
   const u = UI[lang];
   document.documentElement.lang = lang;
-  document.getElementById("title").textContent = u.title;
-  document.getElementById("subtitle").textContent = u.subtitle;
+  updateHeader();
   searchEl.placeholder = u.search;
-  document.getElementById("footer-text").textContent = u.footer;
 
   // Element cell names + aria labels
   tableEl.querySelectorAll(".element:not(.f-placeholder)").forEach(cell => {
@@ -301,17 +434,34 @@ function applyLanguage() {
     cell.setAttribute("aria-label", u.ariaElement(t(el.name), el.n));
   });
 
-  // Legend labels
+  // Element legend labels
   legendEl.querySelectorAll(".legend-item").forEach(item => {
     item.querySelector(".legend-label").textContent = t(CATEGORIES[item.dataset.cat]);
   });
+
+  // Particle cell names + aria labels
+  particleTableEl.querySelectorAll(".particle").forEach(cell => {
+    const p = PARTICLES.find(x => x.id === cell.dataset.pid);
+    cell.querySelector(".p-name").textContent = t(p.name);
+    cell.setAttribute("aria-label", t(p.name));
+  });
+
+  // Particle legend labels
+  particleLegendEl.querySelectorAll(".legend-item").forEach(item => {
+    item.querySelector(".legend-label").textContent = t(PARTICLE_CATEGORIES[item.dataset.cat]);
+  });
+
+  // View switch buttons
+  viewEl.querySelector('[data-view="elements"]').textContent = PARTICLE_UI[lang].elements;
+  viewEl.querySelector('[data-view="particles"]').textContent = PARTICLE_UI[lang].particles;
 
   // Language switch buttons
   langEl.querySelectorAll("button").forEach(b =>
     b.classList.toggle("active", b.dataset.lang === lang));
 
-  // Re-render open panel in the new language
+  // Re-render the open panel in the new language
   if (openElement) openDetail(openElement);
+  else if (openParticle) openParticleDetail(openParticle);
 }
 
 function setLanguage(next) {
@@ -328,4 +478,7 @@ langEl.querySelectorAll("button").forEach(b =>
 // --- Init ---
 buildTable();
 buildLegend();
+buildParticleTable();
+buildParticleLegend();
 applyLanguage();
+applyView();

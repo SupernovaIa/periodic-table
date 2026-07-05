@@ -14,6 +14,7 @@ directamente en el navegador (`open index.html`) y se publica con GitHub Pages.
 | `index.html`      | Estructura y contenedores (tabla, panel, selector idioma).           |
 | `styles.css`      | Estilos, tema oscuro y tokens de color por categoría.                |
 | `data.js`         | Datos de los 118 elementos + textos de UI (fuente única).            |
+| `particles.js`    | Modelo Estándar: 17 partículas + categorías + textos de la vista.    |
 | `images.js`       | Mapa nº atómico → foto (`images/…`) + crédito de licencia.           |
 | `app.js`          | Render de la tabla, filtros, panel, i18n y modelo de Bohr.           |
 | `images/`         | Fotos de elementos (redimensionadas, de Wikimedia Commons).          |
@@ -47,6 +48,11 @@ directamente en el navegador (`open index.html`) y se publica con GitHub Pages.
   (`electronShells` / `bohrSVG` en `app.js`), no son assets.
 - **Licencias**: toda foto nueva debe llevar su entrada en `ATTRIBUTIONS.md` y un
   crédito corto en `images.js`. Redimensiona a ~520px para no inflar el repo.
+- **Dos vistas**: conmutador `#view` (Elements / Particles). La vista de partículas
+  muestra el Modelo Estándar (`particles.js`) reutilizando la misma maquinaria
+  (dim, ficha central, panel lateral, i18n, cierre). Título/subtítulo/pie cambian
+  por vista en `updateHeader()`. Ojo: usa `[hidden]{display:none!important}` porque
+  `.periodic-table`/`.particle-table`/`.legend` fijan `display` y taparían `hidden`.
 
 ## Verificación
 
