@@ -214,6 +214,41 @@ main { max-width: 1240px; margin: 0 auto; }
 #timeline-range { width: clamp(160px, 32vw, 320px); accent-color: var(--accent); cursor: pointer; }
 .element.future { opacity: .14; filter: grayscale(1); }
 
+/* --- Compare: selected cells + bottom comparison panel --- */
+.element.compare-selected { outline: 2px solid var(--accent); outline-offset: 1px; z-index: 3; }
+
+.compare-panel {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+  background: var(--panel); border-top: 1px solid var(--border);
+  box-shadow: 0 -14px 44px rgba(0, 0, 0, .55);
+  padding: 14px 16px; max-height: 54vh; overflow: auto;
+}
+.compare-panel[hidden] { display: none; }
+.compare-inner { max-width: 900px; margin: 0 auto; }
+.compare-empty { color: var(--text-dim); text-align: center; font-size: .9rem; margin: 8px 0; }
+.compare-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.compare-table th, .compare-table td {
+  padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.compare-table thead th { position: relative; vertical-align: bottom; padding-top: 22px; }
+.compare-rowlabel {
+  color: var(--text-dim); font-weight: 600; white-space: nowrap;
+  text-transform: uppercase; font-size: .66rem; letter-spacing: .04em;
+}
+.compare-sym {
+  display: block; font-size: 1.5rem; font-weight: 800; line-height: 1;
+  color: var(--cat);
+}
+.compare-name { display: block; font-size: .8rem; color: var(--text); margin-top: 2px; }
+.compare-remove {
+  position: absolute; top: 2px; right: 2px;
+  border: none; background: transparent; color: var(--text-dim);
+  cursor: pointer; font-size: .82rem; line-height: 1; padding: 2px 4px;
+}
+.compare-remove:hover { color: var(--text); }
+.compare-table td .ox-list { gap: 4px; }
+
 /* In trend mode the cell background is set inline; keep text readable on the
    light end of the ramp, and mute cells that have no data for the property. */
 .element.on-light .sym,

@@ -56,6 +56,8 @@ const UI = {
     upTo: "Discovered up to",
     copyLink: "Copy link",
     copied: "Copied!",
+    compare: "Compare",
+    compareHint: "Select up to 3 elements to compare",
     labels: {
       phase: "State (room temp.)",
       dens: "Density",
@@ -86,6 +88,8 @@ const UI = {
     upTo: "Descubiertos hasta",
     copyLink: "Copiar enlace",
     copied: "¡Copiado!",
+    compare: "Comparar",
+    compareHint: "Selecciona hasta 3 elementos para comparar",
     labels: {
       phase: "Estado (amb.)",
       dens: "Densidad",

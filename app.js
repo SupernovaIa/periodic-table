@@ -17,11 +17,17 @@ const timelineSlider  = document.getElementById("timeline-slider");
 const timelineRange   = document.getElementById("timeline-range");
 const timelineYearEl  = document.getElementById("timeline-year");
 const timelineCountEl = document.getElementById("timeline-count");
+const compareToggle   = document.getElementById("compare-toggle");
+const comparePanel    = document.getElementById("compare-panel");
+const compareInner    = document.getElementById("compare-inner");
 
 let activeCategory = null;                 // legend filter
 let colorMode = localStorage.getItem("colorMode") || "category"; // "category" or a property key
 let timelineOn = false;                    // discovery-timeline dimming
 let timelineYear = 2010;                   // reset from data in initTimeline()
+let compareMode = false;                   // clicking cells adds them to the comparison
+const COMPARE_MAX = 3;
+let compareSet = [];                       // atomic numbers being compared, in pick order
 let openElement = null;                    // element shown in the panel, if any
 let openParticle = null;                   // particle shown in the panel, if any
 let inlineEl = null;                       // central floating detail card
@@ -63,7 +69,7 @@ function makeCell(el) {
     <span class="num">${el.n}</span>
     <span class="sym">${el.s}</span>
     <span class="name"></span>`;
-  cell.addEventListener("click", () => openDetail(el));
+  cell.addEventListener("click", () => onCellClick(el));
   return cell;
 }
 
@@ -286,6 +292,75 @@ function applyTimeline() {
 
 timelineToggle.addEventListener("click", () => { timelineOn = !timelineOn; applyTimeline(); });
 timelineRange.addEventListener("input", () => { timelineYear = +timelineRange.value; applyTimeline(); });
+
+// --- Compare: pin up to 3 elements and show their properties side by side ---
+function onCellClick(el) {
+  if (compareMode) toggleCompare(el);
+  else openDetail(el);
+}
+
+function toggleCompare(el) {
+  const i = compareSet.indexOf(el.n);
+  if (i >= 0) compareSet.splice(i, 1);
+  else {
+    if (compareSet.length >= COMPARE_MAX) compareSet.shift();  // full — drop the oldest
+    compareSet.push(el.n);
+  }
+  updateCompareSelection();
+  renderCompare();
+}
+
+function updateCompareSelection() {
+  tableEl.querySelectorAll(".element:not(.f-placeholder)").forEach(cell =>
+    cell.classList.toggle("compare-selected", compareSet.includes(+cell.dataset.n)));
+}
+
+function renderCompare() {
+  if (!compareSet.length) {
+    compareInner.innerHTML = `<p class="compare-empty">${UI[lang].compareHint}</p>`;
+    return;
+  }
+  const L = UI[lang].labels;
+  const els = compareSet.map(n => ELEMENTS.find(e => e.n === n));
+  const rows = [
+    [UI[lang].mass, e => fmt(e.mass, " u")],
+    [L.phase, e => t(PHASES[e.phase])],
+    [L.dens, e => fmt(e.dens, " g/cm³")],
+    [L.melt, e => fmt(e.melt, " °C")],
+    [L.boil, e => fmt(e.boil, " °C")],
+    [L.eneg, e => fmt(e.eneg)],
+    [L.year, e => e.year == null ? t(ANCIENT) : e.year],
+    [L.ox, e => oxHTML(e)],
+    [L.cfg, e => e.cfg]
+  ];
+  const head = els.map(e => `
+    <th style="--cat:var(--c-${e.cat})">
+      <button class="compare-remove" data-n="${e.n}" aria-label="${UI[lang].close}">✕</button>
+      <span class="compare-sym">${e.s}</span>
+      <span class="compare-name">${t(e.name)}</span>
+    </th>`).join("");
+  const body = rows.map(([label, fn]) =>
+    `<tr><th class="compare-rowlabel">${label}</th>${els.map(e => `<td>${fn(e)}</td>`).join("")}</tr>`).join("");
+  compareInner.innerHTML = `
+    <table class="compare-table">
+      <thead><tr><th></th>${head}</tr></thead>
+      <tbody>${body}</tbody>
+    </table>`;
+  compareInner.querySelectorAll(".compare-remove").forEach(btn =>
+    btn.addEventListener("click", () => toggleCompare(ELEMENTS.find(e => e.n === +btn.dataset.n))));
+}
+
+function setCompareMode(on) {
+  compareMode = on;
+  compareToggle.classList.toggle("active", on);
+  compareToggle.setAttribute("aria-pressed", String(on));
+  if (on) closeDetail();
+  else { compareSet = []; updateCompareSelection(); }
+  comparePanel.hidden = !(on && view === "elements");
+  renderCompare();
+}
+
+compareToggle.addEventListener("click", () => setCompareMode(!compareMode));
 
 // --- Keyboard navigation: arrow keys move focus across the grid ---
 // Roving tabindex: only one cell is tab-focusable at a time; arrows walk the
@@ -810,6 +885,7 @@ function applyView() {
   applyColorMode();
   timelineEl.hidden = view !== "elements";
   applyTimeline();
+  comparePanel.hidden = !(compareMode && view === "elements");
 }
 
 function setView(next) {
@@ -867,6 +943,10 @@ function applyLanguage() {
   // Timeline control
   timelineToggle.textContent = u.timeline;
   document.getElementById("timeline-upto").textContent = u.upTo;
+
+  // Compare control
+  compareToggle.textContent = u.compare;
+  if (compareMode) renderCompare();
 
   // Language switch buttons
   langEl.querySelectorAll("button").forEach(b =>
