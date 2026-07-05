@@ -29,7 +29,7 @@ const PARTICLE_UI = {
     elements: "Elements",
     particles: "Particles",
     title: "The Standard Model",
-    subtitle: "Click any particle to see its full profile",
+    subtitle: "Physics · Interactive",
     footer: "17 elementary particles · data for educational purposes",
     labels: {
       type: "Type", gen: "Generation", mass: "Mass",
@@ -41,7 +41,7 @@ const PARTICLE_UI = {
     elements: "Elementos",
     particles: "Partículas",
     title: "El Modelo Estándar",
-    subtitle: "Haz clic en cualquier partícula para ver su ficha completa",
+    subtitle: "Física · Interactiva",
     footer: "17 partículas elementales · datos con fines educativos",
     labels: {
       type: "Tipo", gen: "Generación", mass: "Masa",

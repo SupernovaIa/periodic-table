@@ -41,7 +41,7 @@ const CATEGORIES = {
 const UI = {
   en: {
     title: "Interactive Periodic Table",
-    subtitle: "Click any element to see its full profile",
+    subtitle: "Chemistry · Interactive",
     search: "Search by name, symbol or number…",
     footer: "118 elements · data for educational purposes",
     close: "Close",
@@ -60,6 +60,9 @@ const UI = {
     compareHint: "Select up to 3 elements to compare",
     filter: "Filter",
     filterAll: "All",
+    hoverHint: "Hover over an element",
+    hoverHint2: "and click to see its full profile",
+    group: "Group · Period",
     labels: {
       phase: "State (room temp.)",
       dens: "Density",
@@ -75,7 +78,7 @@ const UI = {
   },
   es: {
     title: "Tabla Periódica Interactiva",
-    subtitle: "Haz clic en cualquier elemento para ver su ficha completa",
+    subtitle: "Química · Interactiva",
     search: "Buscar por nombre, símbolo o número…",
     footer: "118 elementos · datos con fines educativos",
     close: "Cerrar",
@@ -94,6 +97,9 @@ const UI = {
     compareHint: "Selecciona hasta 3 elementos para comparar",
     filter: "Filtrar",
     filterAll: "Todos",
+    hoverHint: "Pasa el cursor sobre un elemento",
+    hoverHint2: "y haz clic para ver su ficha completa",
+    group: "Grupo · Periodo",
     labels: {
       phase: "Estado (amb.)",
       dens: "Densidad",

@@ -57,13 +57,14 @@ function buildTable() {
   for (const el of ELEMENTS) frag.appendChild(makeCell(el));
   tableEl.appendChild(frag);
 
-  // Central floating detail card. Lives on <body> (not inside a table) so it
-  // shows regardless of which view's table is currently visible.
+  // Central detail card. It's a grid item placed in the empty top-centre gap
+  // (periods 1–3, groups 3–12) so the hover preview / idle prompt stays anchored
+  // to the table. On click it gets the `.media` class → floats centred & large.
   inlineEl = document.createElement("div");
   inlineEl.className = "inline-detail";
   inlineEl.hidden = true;
   inlineEl.innerHTML = '<div class="inline-detail-inner"></div>';
-  document.body.appendChild(inlineEl);
+  tableEl.appendChild(inlineEl);
 }
 
 function makeCell(el) {
@@ -80,6 +81,8 @@ function makeCell(el) {
     <span class="sym">${el.s}</span>
     <span class="name"></span>`;
   cell.addEventListener("click", () => onCellClick(el));
+  cell.addEventListener("mouseenter", () => onCellHover(el));
+  cell.addEventListener("focus", () => onCellHover(el));
   return cell;
 }
 
@@ -363,6 +366,18 @@ function applyTimeline() {
 
 timelineToggle.addEventListener("click", () => { timelineOn = !timelineOn; applyTimeline(); });
 timelineRange.addEventListener("input", () => { timelineYear = +timelineRange.value; applyTimeline(); });
+
+// Hover/focus preview: fill the central gap while nothing is open (wide only).
+function onCellHover(el) {
+  if (!isWide() || openElement || view !== "elements") return;
+  renderCentralPreview(el);
+}
+function onTableLeave() {
+  if (!isWide() || openElement || view !== "elements") return;
+  renderCentralIdle();
+}
+tableEl.addEventListener("mouseleave", onTableLeave);
+window.addEventListener("resize", () => { if (!openElement) resetCentral(); });
 
 // --- Compare: pin up to 3 elements and show their properties side by side ---
 function onCellClick(el) {
@@ -666,8 +681,64 @@ function openDetail(el) {
   }
 }
 
+// Group / period for the hover preview. f-block (rows 9/10) has no simple group.
+function groupPeriod(el) {
+  const period = el.row <= 7 ? el.row : (el.row === 9 ? 6 : 7);
+  const group = el.row >= 9 ? null : el.col;
+  return { group, period };
+}
+
+// Quick preview shown in the central gap while hovering (before a full click).
+function renderCentralPreview(el) {
+  stopOrb();
+  inlineEl.classList.remove("media");
+  const inner = inlineEl.querySelector(".inline-detail-inner");
+  inner.style.setProperty("--cat", `var(--c-${el.cat})`);
+  const other = el.name[lang === "en" ? "es" : "en"];
+  const { group, period } = groupPeriod(el);
+  const L = UI[lang];
+  inner.innerHTML = `
+    <div class="cpreview">
+      <div class="cpreview-tile"><span class="n">${el.n}</span>${el.s}<span class="m">${fmt(el.mass)}</span></div>
+      <div class="cpreview-body">
+        <h3>${t(el.name)}</h3>
+        <div class="cpreview-sub">${other}</div>
+        <span class="cpreview-badge">${t(CATEGORIES[el.cat])}</span>
+        <div class="cpreview-stats">
+          <div><span>${L.trends.state}</span><b>${t(PHASES[el.phase])}</b></div>
+          <div><span>${L.trends.eneg}</span><b>${fmt(el.eneg)}</b></div>
+          <div><span>${L.group}</span><b>${group == null ? "—" : group} · ${period}</b></div>
+        </div>
+      </div>
+    </div>`;
+  inlineEl.hidden = false;
+}
+
+// Idle prompt shown in the central gap when nothing is hovered or open.
+function renderCentralIdle() {
+  stopOrb();
+  inlineEl.classList.remove("media");
+  const inner = inlineEl.querySelector(".inline-detail-inner");
+  inner.style.setProperty("--cat", "var(--border)");
+  inner.innerHTML = `
+    <div class="cidle">
+      <div class="cidle-mark">⚛</div>
+      <p>${UI[lang].hoverHint}</p>
+      <p class="cidle-sub">${UI[lang].hoverHint2}</p>
+    </div>`;
+  inlineEl.hidden = false;
+}
+
+// Reset the central gap to its resting state (idle prompt on wide, hidden otherwise).
+function resetCentral() {
+  if (!inlineEl) return;
+  if (view === "elements" && isWide() && !openElement) renderCentralIdle();
+  else inlineEl.hidden = true;
+}
+
 function renderCentralMedia(el) {
   stopOrb();
+  inlineEl.classList.add("media");
   const img = typeof IMAGES !== "undefined" ? IMAGES[el.n] : null;
   const inner = inlineEl.querySelector(".inline-detail-inner");
   inner.style.setProperty("--cat", `var(--c-${el.cat})`);
@@ -717,8 +788,8 @@ function closeDetail() {
   clearSelected();
   detailEl.hidden = true;
   overlayEl.hidden = true;
-  if (inlineEl) inlineEl.hidden = true;
   setHash(null);
+  resetCentral();
 }
 
 overlayEl.addEventListener("click", closeDetail);
