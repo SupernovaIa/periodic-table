@@ -42,7 +42,7 @@ const UI = {
   en: {
     title: "Interactive Periodic Table",
     subtitle: "Chemistry · Interactive",
-    search: "Search by name, symbol or number…",
+    search: "Search name or symbol…",
     footer: "118 elements · data for educational purposes",
     close: "Close",
     mass: "Atomic mass",
@@ -79,7 +79,7 @@ const UI = {
   es: {
     title: "Tabla Periódica Interactiva",
     subtitle: "Química · Interactiva",
-    search: "Buscar por nombre, símbolo o número…",
+    search: "Buscar nombre o símbolo…",
     footer: "118 elementos · datos con fines educativos",
     close: "Cerrar",
     mass: "Masa atómica",
