@@ -52,12 +52,20 @@
         <span class="colorby-label" id="colorby-label">Color by</span>
         <div class="colorby-pills">
           <button type="button" data-prop="category" class="active"></button>
+          <button type="button" data-prop="state"></button>
+          <button type="button" data-prop="temp"></button>
           <button type="button" data-prop="eneg"></button>
           <button type="button" data-prop="dens"></button>
           <button type="button" data-prop="melt"></button>
           <button type="button" data-prop="boil"></button>
           <button type="button" data-prop="mass"></button>
         </div>
+      </div>
+      <div class="temp-control" id="temp-control" hidden>
+        <span class="temp-label" id="temp-label">Temperature</span>
+        <span class="temp-readout" id="temp-readout"></span>
+        <input type="range" id="temp-range" min="0" max="6000" step="5" value="295" aria-label="Temperature (K)">
+        <span class="state-legend" id="state-legend-inline"></span>
       </div>
       <div class="trend-legend" id="trend-legend" hidden></div>
       <div class="timeline" id="timeline">

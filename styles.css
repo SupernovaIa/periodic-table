@@ -21,6 +21,11 @@
   --c-actinide:              #ff6b96;
   --c-unknown:               #8794b3;
 
+  /* Physical-state colors (state / temperature color modes) */
+  --state-solid:  #6ea8ff;
+  --state-liquid: #4fd8c4;
+  --state-gas:    #ffb26b;
+
   /* Standard Model particle categories */
   --pc-quark:        #b57edc;
   --pc-lepton:       #5fd08a;
@@ -191,6 +196,42 @@ main { max-width: 1240px; margin: 0 auto; }
 .trend-nodata i {
   width: 12px; height: 12px; border-radius: 3px;
   background: var(--bg-soft); border: 1px solid var(--border);
+}
+
+/* State legend (state / temperature modes) */
+.state-legend, .state-item { display: inline-flex; align-items: center; }
+.state-legend { flex-wrap: wrap; gap: 6px 12px; }
+.state-item { gap: 6px; font-size: .74rem; color: var(--text-dim); }
+.state-item i { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+
+/* Temperature control (color-by: temperature) */
+.temp-control {
+  flex: 1 1 100%;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
+  font-size: .74rem; color: var(--text-dim);
+}
+.temp-control[hidden] { display: none; }
+.temp-label { text-transform: uppercase; letter-spacing: .05em; font-size: .7rem; }
+.temp-readout { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; min-width: 11ch; }
+#temp-range {
+  flex: 1 1 220px; max-width: 360px; height: 14px; cursor: pointer;
+  -webkit-appearance: none; appearance: none; background: transparent;
+}
+#temp-range::-webkit-slider-runnable-track {
+  height: 8px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--state-solid), var(--state-liquid) 55%, var(--state-gas));
+}
+#temp-range::-moz-range-track {
+  height: 8px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--state-solid), var(--state-liquid) 55%, var(--state-gas));
+}
+#temp-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; margin-top: -4px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,.5);
+}
+#temp-range::-moz-range-thumb {
+  width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 50%; background: #fff;
 }
 
 /* --- Discovery timeline --- */

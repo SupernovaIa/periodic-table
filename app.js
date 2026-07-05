@@ -11,6 +11,10 @@ const particleTableEl = document.getElementById("particle-table");
 const particleLegendEl = document.getElementById("particle-legend");
 const colorbyEl       = document.getElementById("colorby");
 const trendLegendEl   = document.getElementById("trend-legend");
+const tempControlEl   = document.getElementById("temp-control");
+const tempRangeEl     = document.getElementById("temp-range");
+const tempReadoutEl   = document.getElementById("temp-readout");
+const stateLegendInlineEl = document.getElementById("state-legend-inline");
 const timelineEl      = document.getElementById("timeline");
 const timelineToggle  = document.getElementById("timeline-toggle");
 const timelineSlider  = document.getElementById("timeline-slider");
@@ -28,6 +32,10 @@ let timelineYear = 2010;                   // reset from data in initTimeline()
 let compareMode = false;                   // clicking cells adds them to the comparison
 const COMPARE_MAX = 3;
 let compareSet = [];                       // atomic numbers being compared, in pick order
+let tempK = 295;                           // temperature (K) for the "temp" color mode
+
+// State colors, shared by the "state" and "temperature" color modes.
+const STATE_COLOR = { solid: "var(--state-solid)", liquid: "var(--state-liquid)", gas: "var(--state-gas)" };
 let openElement = null;                    // element shown in the panel, if any
 let openParticle = null;                   // particle shown in the panel, if any
 let inlineEl = null;                       // central floating detail card
@@ -197,47 +205,97 @@ function renderTrendLegend() {
     <span class="trend-nodata"><i></i>${UI[lang].noData}</span>`;
 }
 
+// Physical state of an element at a given temperature (°C), from melt/boil.
+// Returns null when melting point is unknown (synthetics) → shown as "no data".
+function stateAt(el, tempC) {
+  if (el.melt == null) return null;
+  if (el.boil != null && tempC >= el.boil) return "gas";
+  if (tempC >= el.melt) return "liquid";
+  return "solid";
+}
+
+function stateLegendHTML() {
+  return ["solid", "liquid", "gas"].map(k =>
+    `<span class="state-item"><i style="background:var(--state-${k})"></i>${t(PHASES[k])}</span>`).join("");
+}
+function renderStateLegend() {
+  trendLegendEl.innerHTML = `<span class="trend-name">${UI[lang].trends.state}</span>${stateLegendHTML()}`;
+}
+function renderTempControl() {
+  document.getElementById("temp-label").textContent = UI[lang].trends.temp;
+  tempReadoutEl.textContent = `${tempK} K · ${Math.round(tempK - 273.15)} °C`;
+  stateLegendInlineEl.innerHTML = stateLegendHTML();
+}
+
 // Paint every element cell for the current color mode. In "category" mode the
 // inline styles are cleared so the stylesheet's --cat coloring takes over again.
 function applyColorMode() {
-  const trend = colorMode !== "category" && view === "elements";
-  legendEl.hidden = view !== "elements" || trend;
-  trendLegendEl.hidden = !trend;
-  colorbyEl.hidden = view !== "elements";
+  const isEl = view === "elements";
+  const active = colorMode !== "category" && isEl;
+  const isState = colorMode === "state";
+  const isTemp = colorMode === "temp";
+  const isTrend = active && !isState && !isTemp;
+
+  colorbyEl.hidden = !isEl;
+  legendEl.hidden = !isEl || active;
+  tempControlEl.hidden = !(isTemp && isEl);
+  trendLegendEl.hidden = !(active && !isTemp);   // numeric or state legend; temp legend lives in temp-control
   colorbyEl.querySelectorAll("button").forEach(b =>
     b.classList.toggle("active", b.dataset.prop === colorMode));
 
   const cells = tableEl.querySelectorAll(".element:not(.f-placeholder)");
-  if (!trend) {
+
+  if (isState || isTemp) {
+    const tempC = isTemp ? tempK - 273.15 : null;
     cells.forEach(cell => {
+      const el = ELEMENTS.find(e => e.n === +cell.dataset.n);
+      const st = isState ? el.phase : stateAt(el, tempC);
       cell.style.background = "";
       cell.style.borderColor = "";
-      cell.classList.remove("on-light", "nodata");
+      cell.classList.remove("on-light");
+      cell.style.setProperty("--cat", st ? STATE_COLOR[st] : "var(--c-unknown)");
+      cell.classList.toggle("nodata", !st);
     });
+    if (isTemp) renderTempControl(); else renderStateLegend();
     return;
   }
 
-  const { lo, hi, scale } = trendDomain(colorMode);
-  const tx = v => scale === "log" ? Math.log(v) : v;
-  const L = tx(lo), span = (tx(hi) - L) || 1;
+  if (isTrend) {
+    const { lo, hi, scale } = trendDomain(colorMode);
+    const tx = v => scale === "log" ? Math.log(v) : v;
+    const L = tx(lo), span = (tx(hi) - L) || 1;
+    cells.forEach(cell => {
+      const el = ELEMENTS.find(e => e.n === +cell.dataset.n);
+      const v = el[colorMode];
+      cell.style.setProperty("--cat", `var(--c-${el.cat})`);
+      if (v == null) {
+        cell.style.background = "var(--bg-soft)";
+        cell.style.borderColor = "var(--border)";
+        cell.classList.remove("on-light");
+        cell.classList.add("nodata");
+        return;
+      }
+      const rgb = rampColor((tx(v) - L) / span);
+      cell.style.background = `rgb(${rgb.join(",")})`;
+      cell.style.borderColor = "rgba(255,255,255,.16)";
+      cell.classList.remove("nodata");
+      cell.classList.toggle("on-light", luminance(rgb) > 0.55);
+    });
+    renderTrendLegend();
+    return;
+  }
+
+  // category
   cells.forEach(cell => {
     const el = ELEMENTS.find(e => e.n === +cell.dataset.n);
-    const v = el[colorMode];
-    if (v == null) {
-      cell.style.background = "var(--bg-soft)";
-      cell.style.borderColor = "var(--border)";
-      cell.classList.remove("on-light");
-      cell.classList.add("nodata");
-      return;
-    }
-    const rgb = rampColor((tx(v) - L) / span);
-    cell.style.background = `rgb(${rgb.join(",")})`;
-    cell.style.borderColor = "rgba(255,255,255,.16)";
-    cell.classList.remove("nodata");
-    cell.classList.toggle("on-light", luminance(rgb) > 0.55);
+    cell.style.background = "";
+    cell.style.borderColor = "";
+    cell.style.setProperty("--cat", `var(--c-${el.cat})`);
+    cell.classList.remove("on-light", "nodata");
   });
-  renderTrendLegend();
 }
+
+tempRangeEl.addEventListener("input", () => { tempK = +tempRangeEl.value; applyColorMode(); });
 
 function setColorMode(mode) {
   colorMode = mode;
@@ -938,7 +996,7 @@ function applyLanguage() {
   colorbyEl.querySelectorAll("button").forEach(b => {
     b.textContent = u.trends[b.dataset.prop];
   });
-  if (colorMode !== "category" && view === "elements") renderTrendLegend();
+  if (colorMode !== "category" && view === "elements") applyColorMode();
 
   // Timeline control
   timelineToggle.textContent = u.timeline;
