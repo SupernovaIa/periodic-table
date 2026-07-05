@@ -32,12 +32,38 @@
 [hidden] { display: none !important; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: radial-gradient(1200px 800px at 70% -10%, #17203a 0%, var(--bg) 55%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   padding: 32px 20px 60px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  position: relative;
 }
+
+/* Layered background: drifting aurora glow + faint dot grid + vignette. */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background:
+    radial-gradient(45% 38% at 14% 2%,  rgba(110, 168, 255, .20), transparent 72%),
+    radial-gradient(42% 40% at 88% 6%,  rgba(196, 139, 255, .18), transparent 72%),
+    radial-gradient(60% 55% at 50% 108%, rgba(120, 96, 210, .12), transparent 70%);
+  animation: aurora 26s ease-in-out infinite alternate;
+}
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .6;
+  background-image: radial-gradient(rgba(255, 255, 255, .035) 1px, transparent 1.4px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000 55%, transparent 100%);
+          mask-image: radial-gradient(120% 90% at 50% 0%, #000 55%, transparent 100%);
+}
+@keyframes aurora {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(0, 2.5%, 0) scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
 
 .site-header { text-align: center; margin-bottom: 28px; position: relative; }
 
@@ -59,15 +85,20 @@ body {
   .lang-switch { position: static; margin: 0 auto 16px; }
 }
 .site-header h1 {
-  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-size: clamp(1.8rem, 4.4vw, 3rem);
   font-weight: 800;
-  letter-spacing: -.02em;
-  background: linear-gradient(90deg, #8ec5ff, #c48bff);
+  letter-spacing: -.035em;
+  line-height: 1.05;
+  background: linear-gradient(100deg, #a7d0ff 0%, #8ec5ff 35%, #c48bff 75%, #e0aaff 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  filter: drop-shadow(0 3px 26px rgba(140, 130, 255, .35));
 }
-.subtitle { color: var(--text-dim); margin-top: 8px; font-size: .98rem; }
+.subtitle {
+  color: var(--text-dim); margin: 10px auto 0; font-size: 1rem;
+  letter-spacing: .01em; max-width: 42ch;
+}
 
 main { max-width: 1240px; margin: 0 auto; }
 
@@ -202,7 +233,7 @@ main { max-width: 1240px; margin: 0 auto; }
   position: relative;
 }
 .detail-symbol .n { position: absolute; top: 8px; left: 10px; font-size: .8rem; font-weight: 500; color: var(--text-dim); }
-.detail-title h2 { font-size: 1.7rem; font-weight: 800; }
+.detail-title h2 { font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; }
 .detail-title .mass { color: var(--text-dim); font-size: .9rem; margin-top: 4px; }
 
 /* --- Media (photo / Bohr diagram) --- */
