@@ -595,7 +595,79 @@ function setLanguage(next) {
 langEl.querySelectorAll("button").forEach(b =>
   b.addEventListener("click", () => setLanguage(b.dataset.lang)));
 
+// --- Galactic background: twinkling stars + a few wandering glowing particles ---
+function startCosmos() {
+  const canvas = document.createElement("canvas");
+  canvas.id = "cosmos";
+  document.body.prepend(canvas);
+  const ctx = canvas.getContext("2d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const palette = ["#6ea8ff", "#8ec5ff", "#c48bff", "#4fd8c4"];
+  let W = 0, H = 0, stars = [], orbs = [];
+
+  function build() {
+    W = canvas.width = Math.floor(window.innerWidth * dpr);
+    H = canvas.height = Math.floor(window.innerHeight * dpr);
+    const n = Math.min(180, Math.round((window.innerWidth * window.innerHeight) / 11000));
+    stars = Array.from({ length: n }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      r: (Math.random() * 1.1 + 0.4) * dpr,
+      a: Math.random() * 0.5 + 0.25,
+      tw: Math.random() * 0.9 + 0.3, ph: Math.random() * 6.283,
+      vx: (Math.random() - 0.5) * 0.05 * dpr, vy: (Math.random() - 0.5) * 0.05 * dpr
+    }));
+    orbs = Array.from({ length: 9 }, () => {
+      const ang = Math.random() * 6.283, sp = (Math.random() * 0.18 + 0.05) * dpr;
+      return {
+        x: Math.random() * W, y: Math.random() * H,
+        r: (Math.random() * 3 + 1.6) * dpr,
+        vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+        c: palette[Math.floor(Math.random() * palette.length)],
+        pulse: Math.random() * 6.283
+      };
+    });
+  }
+  build();
+
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const wrap = p => {
+    if (p.x < -30) p.x = W + 30; else if (p.x > W + 30) p.x = -30;
+    if (p.y < -30) p.y = H + 30; else if (p.y > H + 30) p.y = -30;
+  };
+
+  function draw(t) {
+    ctx.clearRect(0, 0, W, H);
+    for (const s of stars) {
+      s.x += s.vx; s.y += s.vy; wrap(s);
+      ctx.globalAlpha = Math.max(0, s.a * (0.55 + 0.45 * Math.sin(t * s.tw + s.ph)));
+      ctx.fillStyle = "#dbe6ff";
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fill();
+    }
+    for (const o of orbs) {
+      o.x += o.vx; o.y += o.vy; wrap(o);
+      const pr = o.r * (1 + 0.18 * Math.sin(t * 0.8 + o.pulse));
+      const glow = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, pr * 7);
+      glow.addColorStop(0, o.c + "cc");
+      glow.addColorStop(0.4, o.c + "40");
+      glow.addColorStop(1, o.c + "00");
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(o.x, o.y, pr * 7, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = o.c;
+      ctx.beginPath(); ctx.arc(o.x, o.y, pr, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  let t0 = null;
+  function frame(ts) { if (t0 == null) t0 = ts; draw((ts - t0) / 1000); requestAnimationFrame(frame); }
+  if (reduced) draw(0); else requestAnimationFrame(frame);
+  window.addEventListener("resize", () => { build(); if (reduced) draw(0); });
+}
+
 // --- Init ---
+startCosmos();
 buildTable();
 buildLegend();
 buildParticleTable();
