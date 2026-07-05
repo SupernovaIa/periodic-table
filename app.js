@@ -368,16 +368,53 @@ function renderParticleCentral(p) {
   inlineEl.hidden = false;
   const color = getComputedStyle(document.documentElement)
     .getPropertyValue(`--pc-${p.cat}`).trim() || "#b57edc";
-  orbStop = startParticleOrb(inner.querySelector(".porb"), color);
+  orbStop = startParticleOrb(inner.querySelector(".porb"), orbConfig(p, color));
 }
 
 function stopOrb() {
   if (orbStop) { orbStop(); orbStop = null; }
 }
 
-// 3D "particle": a sphere of points that rotates and pulses (wobbles), drawn on
-// a canvas. No libraries — just projection + requestAnimationFrame.
-function startParticleOrb(canvas, color) {
+// Parse a mass string ("2.2 MeV/c²", "1.28 GeV/c²", "0", "< 1 eV/c²") into MeV.
+function massMeV(str) {
+  if (!str || str.trim() === "0") return 0;
+  const m = str.match(/([\d.]+)\s*(eV|keV|MeV|GeV|TeV)/i);
+  if (!m) return 0;
+  const factor = { ev: 1e-6, kev: 1e-3, mev: 1, gev: 1e3, tev: 1e6 }[m[2].toLowerCase()];
+  return parseFloat(m[1]) * factor;
+}
+function chargeMag(charge) {
+  if (!charge || charge === "0") return 0;
+  if (charge.includes("⅔")) return 0.667;
+  if (charge.includes("⅓")) return 0.333;
+  return 1; // ±1, −1, +1
+}
+
+// Map a particle's physics to distinct orb visuals: size & density ~ mass,
+// speed ~ 1/mass, wobble ~ charge, motion style ~ category.
+function orbConfig(p, color) {
+  const m = massMeV(p.mass);
+  const logm = m > 0 ? Math.log10(m) : -7;                       // massless -> lowest
+  const massNorm = Math.max(0, Math.min(1, (logm + 6) / (5.3 + 6)));
+  const q = chargeMag(p.charge);
+  const spin = p.spin === "1" ? 1 : p.spin === "0" ? 0 : 0.5;
+  const massless = m === 0;
+  return {
+    color,
+    count: Math.round(130 + massNorm * 250),                     // denser = heavier
+    radius: 0.24 + massNorm * 0.13,                              // bigger = heavier
+    spin: 0.30 + (1 - massNorm) * 0.55 + (massless ? 0.35 : 0),  // lighter = faster
+    wobbleAmp: 0.05 + q * 0.07 + (spin === 1 ? 0.04 : 0),
+    wobbleFreq: 1.3 + (1 - massNorm) * 2.4,                      // lighter = jitterier
+    style: p.cat,
+    alpha: (p.cat === "lepton" && q === 0) ? 0.5 : 1,           // neutrinos faint
+    dot: 0.85 + massNorm * 0.8                                   // heavier = fatter points
+  };
+}
+
+// 3D "particle": a sphere of points that rotates and pulses, tuned per particle.
+// No libraries — just projection + requestAnimationFrame.
+function startParticleOrb(canvas, cfg) {
   const ctx = canvas.getContext("2d");
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const resize = () => {
@@ -387,14 +424,19 @@ function startParticleOrb(canvas, color) {
   };
   resize();
 
-  // Points spread evenly on a sphere (Fibonacci lattice).
-  const N = 300, pts = [];
+  // Points on a sphere (Fibonacci lattice), with a per-point wobble phase whose
+  // pattern depends on the particle category.
+  const N = cfg.count, pts = [];
   const golden = Math.PI * (3 - Math.sqrt(5));
   for (let i = 0; i < N; i++) {
     const y = 1 - (i / (N - 1)) * 2;
     const rad = Math.sqrt(Math.max(0, 1 - y * y));
     const th = golden * i;
-    pts.push({ x: Math.cos(th) * rad, y, z: Math.sin(th) * rad, ph: i * 0.7 });
+    let ph;
+    if (cfg.style === "scalar-boson") ph = 0;                    // synchronized breathing
+    else if (cfg.style === "gauge-boson") ph = y * Math.PI * 3;  // vertical ripple / wave
+    else ph = i * 0.7;                                           // scattered
+    pts.push({ x: Math.cos(th) * rad, y, z: Math.sin(th) * rad, ph });
   }
 
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -402,26 +444,26 @@ function startParticleOrb(canvas, color) {
 
   function draw(t) {
     const w = canvas.width, h = canvas.height;
-    const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.34;
+    const cx = w / 2, cy = h / 2, R = Math.min(w, h) * cfg.radius;
     ctx.clearRect(0, 0, w, h);
-    const ay = t * 0.5, ax = Math.sin(t * 0.3) * 0.35;
+    const ay = t * cfg.spin, ax = Math.sin(t * 0.3) * 0.35;
     const cY = Math.cos(ay), sY = Math.sin(ay), cX = Math.cos(ax), sX = Math.sin(ax);
     const drawn = [];
     for (const p of pts) {
-      const wob = 1 + 0.11 * Math.sin(t * 2.2 + p.ph);      // organic pulse
+      const wob = 1 + cfg.wobbleAmp * Math.sin(t * cfg.wobbleFreq + p.ph);
       const x = p.x * wob, y = p.y * wob, z = p.z * wob;
-      const x1 = x * cY - z * sY, z1 = x * sY + z * cY;      // rotate Y
-      const y1 = y * cX - z1 * sX, z2 = y * sX + z1 * cX;    // rotate X
+      const x1 = x * cY - z * sY, z1 = x * sY + z * cY;          // rotate Y
+      const y1 = y * cX - z1 * sX, z2 = y * sX + z1 * cX;        // rotate X
       const persp = 1 / (1.7 - z2 * 0.6);
       drawn.push({ sx: cx + x1 * R * persp, sy: cy + y1 * R * persp, z: z2 });
     }
-    drawn.sort((a, b) => a.z - b.z);                          // back-to-front
+    drawn.sort((a, b) => a.z - b.z);                              // back-to-front
     for (const d of drawn) {
-      const depth = (d.z + 1) / 2;                            // 0..1
-      ctx.globalAlpha = 0.22 + depth * 0.78;
-      ctx.fillStyle = color;
+      const depth = (d.z + 1) / 2;                                // 0..1
+      ctx.globalAlpha = (0.22 + depth * 0.78) * cfg.alpha;
+      ctx.fillStyle = cfg.color;
       ctx.beginPath();
-      ctx.arc(d.sx, d.sy, (1.3 + depth * 2.7) * dpr, 0, Math.PI * 2);
+      ctx.arc(d.sx, d.sy, (1.1 + depth * 2.4) * cfg.dot * dpr, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -432,9 +474,7 @@ function startParticleOrb(canvas, color) {
     draw((ts - t0) / 1000);
     raf = requestAnimationFrame(frame);
   }
-
-  if (reduced) { draw(0); }
-  else { raf = requestAnimationFrame(frame); }
+  if (reduced) draw(0); else raf = requestAnimationFrame(frame);
 
   const onResize = () => resize();
   window.addEventListener("resize", onResize);
