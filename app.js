@@ -250,10 +250,13 @@ colorbyEl.querySelectorAll("button").forEach(b =>
 
 // --- Discovery timeline: dim elements discovered after the chosen year ---
 // Elements known since antiquity have year == null and are always "discovered".
+// The numeric scale starts at 1600; the extra tick below it is the "antiquity"
+// stop (only the pre-1600 elements are lit), avoiding a long dead zone at the
+// start (nothing new was isolated between arsenic ~1250 and phosphorus 1669).
+const TIMELINE_START = 1600;
 function initTimeline() {
-  const years = ELEMENTS.map(e => e.year).filter(y => y != null);
-  const min = Math.min(...years), max = Math.max(...years);
-  timelineRange.min = min;
+  const max = Math.max(...ELEMENTS.map(e => e.year).filter(y => y != null));
+  timelineRange.min = TIMELINE_START - 1;   // leftmost tick = antiquity
   timelineRange.max = max;
   timelineRange.value = max;
   timelineYear = max;
@@ -277,7 +280,7 @@ function applyTimeline() {
     cell.classList.toggle("future", !discovered);
     if (discovered) count++;
   });
-  timelineYearEl.textContent = timelineYear;
+  timelineYearEl.textContent = timelineYear < TIMELINE_START ? t(ANCIENT) : timelineYear;
   timelineCountEl.textContent = `${count} / ${ELEMENTS.length}`;
 }
 
