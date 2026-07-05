@@ -11,9 +11,17 @@ const particleTableEl = document.getElementById("particle-table");
 const particleLegendEl = document.getElementById("particle-legend");
 const colorbyEl       = document.getElementById("colorby");
 const trendLegendEl   = document.getElementById("trend-legend");
+const timelineEl      = document.getElementById("timeline");
+const timelineToggle  = document.getElementById("timeline-toggle");
+const timelineSlider  = document.getElementById("timeline-slider");
+const timelineRange   = document.getElementById("timeline-range");
+const timelineYearEl  = document.getElementById("timeline-year");
+const timelineCountEl = document.getElementById("timeline-count");
 
 let activeCategory = null;                 // legend filter
 let colorMode = localStorage.getItem("colorMode") || "category"; // "category" or a property key
+let timelineOn = false;                    // discovery-timeline dimming
+let timelineYear = 2010;                   // reset from data in initTimeline()
 let openElement = null;                    // element shown in the panel, if any
 let openParticle = null;                   // particle shown in the panel, if any
 let inlineEl = null;                       // central floating detail card
@@ -239,6 +247,42 @@ function setColorMode(mode) {
 
 colorbyEl.querySelectorAll("button").forEach(b =>
   b.addEventListener("click", () => setColorMode(b.dataset.prop)));
+
+// --- Discovery timeline: dim elements discovered after the chosen year ---
+// Elements known since antiquity have year == null and are always "discovered".
+function initTimeline() {
+  const years = ELEMENTS.map(e => e.year).filter(y => y != null);
+  const min = Math.min(...years), max = Math.max(...years);
+  timelineRange.min = min;
+  timelineRange.max = max;
+  timelineRange.value = max;
+  timelineYear = max;
+}
+
+function applyTimeline() {
+  const active = timelineOn && view === "elements";
+  timelineSlider.hidden = !active;
+  timelineToggle.classList.toggle("active", timelineOn);
+  timelineToggle.setAttribute("aria-pressed", String(timelineOn));
+
+  const cells = tableEl.querySelectorAll(".element:not(.f-placeholder)");
+  if (!active) {
+    cells.forEach(c => c.classList.remove("future"));
+    return;
+  }
+  let count = 0;
+  cells.forEach(cell => {
+    const el = ELEMENTS.find(e => e.n === +cell.dataset.n);
+    const discovered = el.year == null || el.year <= timelineYear;
+    cell.classList.toggle("future", !discovered);
+    if (discovered) count++;
+  });
+  timelineYearEl.textContent = timelineYear;
+  timelineCountEl.textContent = `${count} / ${ELEMENTS.length}`;
+}
+
+timelineToggle.addEventListener("click", () => { timelineOn = !timelineOn; applyTimeline(); });
+timelineRange.addEventListener("input", () => { timelineYear = +timelineRange.value; applyTimeline(); });
 
 // --- Bohr atomic model (computed from atomic number, aufbau order) ---
 // Electrons per principal shell (n). Aufbau reproduces the standard Bohr counts
@@ -671,6 +715,8 @@ function applyView() {
   closeDetail();
   updateHeader();
   applyColorMode();
+  timelineEl.hidden = view !== "elements";
+  applyTimeline();
 }
 
 function setView(next) {
@@ -724,6 +770,10 @@ function applyLanguage() {
     b.textContent = u.trends[b.dataset.prop];
   });
   if (colorMode !== "category" && view === "elements") renderTrendLegend();
+
+  // Timeline control
+  timelineToggle.textContent = u.timeline;
+  document.getElementById("timeline-upto").textContent = u.upTo;
 
   // Language switch buttons
   langEl.querySelectorAll("button").forEach(b =>
@@ -822,5 +872,6 @@ buildTable();
 buildLegend();
 buildParticleTable();
 buildParticleLegend();
+initTimeline();
 applyLanguage();
 applyView();

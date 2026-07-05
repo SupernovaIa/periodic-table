@@ -52,6 +52,8 @@ const UI = {
     colorBy: "Color by",
     noData: "no data",
     trends: { category: "Category", eneg: "Electroneg.", dens: "Density", melt: "Melting", boil: "Boiling", mass: "Mass" },
+    timeline: "Timeline",
+    upTo: "Discovered up to",
     labels: {
       phase: "State (room temp.)",
       dens: "Density",
@@ -78,6 +80,8 @@ const UI = {
     colorBy: "Colorear por",
     noData: "sin dato",
     trends: { category: "Categoría", eneg: "Electroneg.", dens: "Densidad", melt: "Fusión", boil: "Ebullición", mass: "Masa" },
+    timeline: "Línea temporal",
+    upTo: "Descubiertos hasta",
     labels: {
       phase: "Estado (amb.)",
       dens: "Densidad",
