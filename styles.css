@@ -560,8 +560,8 @@ main { max-width: 1240px; margin: 0 auto; }
   width: 100%; height: 100%; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
   /* Slightly translucent so the galactic backdrop shows through. */
-  background: color-mix(in srgb, var(--panel) 58%, transparent);
-  -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+  background: color-mix(in srgb, var(--panel) 48%, transparent);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   border: 1px solid color-mix(in srgb, var(--cat, var(--border)) 50%, var(--border));
   border-radius: 18px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, .6);
