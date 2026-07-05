@@ -72,7 +72,7 @@ body::before {
 .site-header { text-align: center; margin-bottom: 28px; position: relative; }
 
 .lang-switch {
-  position: absolute; top: 0; right: 0;
+  position: absolute; top: 0; right: 0; z-index: 10;
   display: inline-flex; gap: 2px;
   background: var(--bg-soft); border: 1px solid var(--border);
   border-radius: 999px; padding: 3px;
@@ -98,10 +98,12 @@ body::before {
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 3px 26px rgba(140, 130, 255, .35));
+  pointer-events: none;
 }
 .subtitle {
   color: var(--text-dim); margin: 10px auto 0; font-size: 1rem;
   letter-spacing: .01em; max-width: 42ch;
+  pointer-events: none;
 }
 
 main { max-width: 1240px; margin: 0 auto; }
