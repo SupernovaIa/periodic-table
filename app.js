@@ -250,7 +250,9 @@ function renderCentralMedia(el) {
         <button type="button" data-mode="photo">${UI[lang].photo}</button>
         <button type="button" data-mode="diagram">${UI[lang].diagram}</button>
       </div>` : ""}
-      <div class="cmedia-credit">${img ? img.credit : UI[lang].noPhoto}</div>
+      ${img
+        ? `<div class="cmedia-credit">${img.credit}</div>`
+        : `<div class="cmedia-note">${UI[lang].noPhoto}</div>`}
     </div>`;
   inner.querySelector(".detail-close").addEventListener("click", closeDetail);
   const cm = inner.querySelector(".cmedia");

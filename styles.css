@@ -273,23 +273,41 @@ main { max-width: 1240px; margin: 0 auto; }
 .stat .value { font-size: .98rem; font-weight: 600; margin-top: 3px; }
 .stat.wide { grid-column: 1 / -1; }
 
-/* --- Central media (big image / orbitals) in the table's empty gap --- */
-.inline-detail { grid-column: 3 / 13; grid-row: 1 / 4; position: relative; min-height: 0; }
+/* --- Central media (big image / orbitals) floating over the table --- */
+/* Large panel, vertically centered in the space left of the side drawer (420px). */
+.inline-detail {
+  position: fixed;
+  top: 50%;
+  left: calc((100vw - 420px) / 2);
+  transform: translate(-50%, -50%);
+  width: min(640px, calc(100vw - 420px - 56px));
+  height: min(620px, calc(100vh - 140px));
+  z-index: 30;
+}
 .inline-detail-inner {
   position: absolute; inset: 0; overflow: hidden;
   background: var(--panel);
-  border: 1px solid color-mix(in srgb, var(--cat) 45%, var(--border));
-  border-radius: 14px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
+  border: 1px solid color-mix(in srgb, var(--cat) 50%, var(--border));
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .6);
   animation: fade .2s ease;
 }
 .cmedia {
   position: absolute; inset: 0;
   display: grid; place-items: center;
   background:
-    radial-gradient(180px 180px at 50% 45%, color-mix(in srgb, var(--cat) 20%, transparent), transparent),
+    radial-gradient(240px 240px at 50% 45%, color-mix(in srgb, var(--cat) 20%, transparent), transparent),
     var(--bg-soft);
 }
+/* Bottom scrim so caption/credit stay legible over any photo */
+.cmedia::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 96px;
+  background: linear-gradient(to top, rgba(0, 0, 0, .6), transparent);
+  pointer-events: none;
+}
+.cmedia-caption, .cmedia-credit, .cmedia-note, .cmedia-toggle { z-index: 2; }
+/* The credit only applies to the photo, not the generated diagram */
+.cmedia[data-mode="diagram"] .cmedia-credit { display: none; }
 .cmedia .media-photo {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
@@ -303,15 +321,15 @@ main { max-width: 1240px; margin: 0 auto; }
 .cmedia[data-mode="photo"]   .media-photo   { display: block; }
 .cmedia[data-mode="diagram"] .media-photo   { display: none; }
 .cmedia[data-mode="diagram"] .media-diagram { display: grid; }
-.inline-detail .bohr { width: 178px; height: 178px; }
+.inline-detail .bohr { width: min(62%, 400px); height: auto; }
 
 .cmedia-caption {
-  position: absolute; left: 14px; bottom: 12px;
-  display: flex; align-items: baseline; gap: 8px;
+  position: absolute; left: 18px; bottom: 16px;
+  display: flex; align-items: baseline; gap: 10px;
   text-shadow: 0 2px 10px rgba(0, 0, 0, .85); pointer-events: none;
 }
-.cmedia-caption .cm-sym { font-size: 1.5rem; font-weight: 800; color: var(--text); }
-.cmedia-caption .cm-name { font-size: .95rem; color: var(--text); }
+.cmedia-caption .cm-sym { font-size: 2.1rem; font-weight: 800; color: var(--text); }
+.cmedia-caption .cm-name { font-size: 1.15rem; color: var(--text); }
 
 .cmedia-toggle {
   position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
@@ -330,11 +348,11 @@ main { max-width: 1240px; margin: 0 auto; }
 .cmedia[data-mode="diagram"] .cmedia-toggle button[data-mode="diagram"] {
   background: var(--accent); color: #0b0f1a;
 }
-.cmedia-credit {
-  position: absolute; right: 10px; bottom: 8px;
-  font-size: .62rem; color: var(--text-dim);
-  max-width: 52%; text-align: right; line-height: 1.25;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, .7);
+.cmedia-credit, .cmedia-note {
+  position: absolute; right: 12px; bottom: 10px;
+  font-size: .64rem; color: var(--text-dim);
+  max-width: 52%; text-align: right; line-height: 1.3;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .8);
 }
 .inline-detail .detail-close {
   position: absolute; top: 8px; right: 8px; z-index: 3;
