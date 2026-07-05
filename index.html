@@ -68,6 +68,15 @@
         <span class="state-legend" id="state-legend-inline"></span>
       </div>
       <div class="trend-legend" id="trend-legend" hidden></div>
+      <div class="statefilter" id="statefilter" role="group" aria-label="Filter by state">
+        <span class="statefilter-label" id="statefilter-label">Filter</span>
+        <div class="statefilter-pills">
+          <button type="button" data-state="all" class="active"><span></span></button>
+          <button type="button" data-state="solid"><i></i><span></span></button>
+          <button type="button" data-state="liquid"><i></i><span></span></button>
+          <button type="button" data-state="gas"><i></i><span></span></button>
+        </div>
+      </div>
       <div class="timeline" id="timeline">
         <button type="button" class="timeline-toggle" id="timeline-toggle" aria-pressed="false"></button>
         <div class="timeline-slider" id="timeline-slider" hidden>

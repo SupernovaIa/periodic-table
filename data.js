@@ -58,6 +58,8 @@ const UI = {
     copied: "Copied!",
     compare: "Compare",
     compareHint: "Select up to 3 elements to compare",
+    filter: "Filter",
+    filterAll: "All",
     labels: {
       phase: "State (room temp.)",
       dens: "Density",
@@ -90,6 +92,8 @@ const UI = {
     copied: "¡Copiado!",
     compare: "Comparar",
     compareHint: "Selecciona hasta 3 elementos para comparar",
+    filter: "Filtrar",
+    filterAll: "Todos",
     labels: {
       phase: "Estado (amb.)",
       dens: "Densidad",

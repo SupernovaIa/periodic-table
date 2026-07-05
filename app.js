@@ -24,8 +24,10 @@ const timelineCountEl = document.getElementById("timeline-count");
 const compareToggle   = document.getElementById("compare-toggle");
 const comparePanel    = document.getElementById("compare-panel");
 const compareInner    = document.getElementById("compare-inner");
+const stateFilterEl   = document.getElementById("statefilter");
 
 let activeCategory = null;                 // legend filter
+let activeState = null;                    // state filter (solid/liquid/gas) or null for all
 let colorMode = localStorage.getItem("colorMode") || "category"; // "category" or a property key
 let timelineOn = false;                    // discovery-timeline dimming
 let timelineYear = 2010;                   // reset from data in initTimeline()
@@ -129,11 +131,22 @@ function applyFilters() {
       el.s.toLowerCase().includes(q) ||
       String(el.n) === q;
     const matchesCat = !activeCategory || el.cat === activeCategory;
-    cell.classList.toggle("hidden", !(matchesText && matchesCat));
+    const matchesState = !activeState || el.phase === activeState;
+    cell.classList.toggle("hidden", !(matchesText && matchesCat && matchesState));
   });
 }
 
 searchEl.addEventListener("input", applyFilters);
+
+// --- State filter (all / solid / liquid / gas) ---
+function setStateFilter(state) {
+  activeState = state === "all" ? null : state;
+  stateFilterEl.querySelectorAll("button").forEach(b =>
+    b.classList.toggle("active", b.dataset.state === state));
+  applyFilters();
+}
+stateFilterEl.querySelectorAll("button").forEach(b =>
+  b.addEventListener("click", () => setStateFilter(b.dataset.state)));
 
 // --- Trends: color the table by a numeric property (heatmap) ---
 // Only properties already present in the data. Density spans ~5 orders of
@@ -944,6 +957,7 @@ function applyView() {
   timelineEl.hidden = view !== "elements";
   applyTimeline();
   comparePanel.hidden = !(compareMode && view === "elements");
+  stateFilterEl.hidden = view !== "elements";
 }
 
 function setView(next) {
@@ -1005,6 +1019,13 @@ function applyLanguage() {
   // Compare control
   compareToggle.textContent = u.compare;
   if (compareMode) renderCompare();
+
+  // State filter
+  document.getElementById("statefilter-label").textContent = u.filter;
+  stateFilterEl.querySelectorAll("button").forEach(b => {
+    const s = b.dataset.state;
+    b.querySelector("span").textContent = s === "all" ? u.filterAll : t(PHASES[s]);
+  });
 
   // Language switch buttons
   langEl.querySelectorAll("button").forEach(b =>
