@@ -181,6 +181,17 @@ function mediaBlock(el) {
 const fmt = (value, unit = "") =>
   (value === null || value === undefined) ? "—" : `${value}${unit}`;
 
+// Signed oxidation-state label, e.g. +3, −2, 0. Uses a real minus sign.
+const oxLabel = v => v > 0 ? `+${v}` : v < 0 ? `−${-v}` : "0";
+
+// Oxidation states as chips, with the main (most common) one highlighted.
+function oxHTML(el) {
+  if (!el.ox || !el.ox.length) return "—";
+  return `<span class="ox-list">${el.ox.map(v =>
+    `<span class="ox-chip${v === el.oxm ? " ox-main" : ""}">${oxLabel(v)}</span>`
+  ).join("")}</span>`;
+}
+
 function headHTML(el) {
   return `
     <span class="detail-badge">${t(CATEGORIES[el.cat])}</span>
@@ -203,6 +214,7 @@ function statsHTML(el) {
       <div class="stat"><div class="label">${L.boil}</div><div class="value">${fmt(el.boil, " °C")}</div></div>
       <div class="stat"><div class="label">${L.eneg}</div><div class="value">${fmt(el.eneg)}</div></div>
       <div class="stat"><div class="label">${L.year}</div><div class="value">${fmt(el.year)}</div></div>
+      <div class="stat wide"><div class="label">${L.ox}</div><div class="value">${oxHTML(el)}</div></div>
       <div class="stat wide"><div class="label">${L.cfg}</div><div class="value">${el.cfg}</div></div>
       <div class="stat wide"><div class="label">${L.disc}</div><div class="value">${t(el.disc)}</div></div>
     </div>`;

@@ -328,6 +328,19 @@ main { max-width: 1240px; margin: 0 auto; }
 .stat .value { font-size: .98rem; font-weight: 600; margin-top: 3px; }
 .stat.wide { grid-column: 1 / -1; }
 
+/* Oxidation-state chips: the main (most common) state is highlighted. */
+.ox-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.ox-chip {
+  font-size: .82rem; font-weight: 600; line-height: 1;
+  padding: 4px 8px; border-radius: 999px;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text-dim);
+}
+.ox-chip.ox-main {
+  background: color-mix(in srgb, var(--cat) 24%, transparent);
+  border-color: color-mix(in srgb, var(--cat) 55%, transparent);
+  color: color-mix(in srgb, var(--cat) 70%, var(--text));
+}
+
 /* --- Central media (big image / orbitals) floating over the table --- */
 /* Large panel, vertically centered in the space left of the side drawer (420px). */
 .inline-detail {
