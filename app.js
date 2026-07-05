@@ -226,7 +226,7 @@ function openDetail(el) {
   markSelected(el);
   if (isWide()) {
     renderCentralMedia(el);
-    renderDrawer(el, { media: false, overlay: false });
+    renderDrawer(el, { media: false, overlay: true });
   } else {
     if (inlineEl) inlineEl.hidden = true;
     renderDrawer(el, { media: true, overlay: true });
@@ -238,7 +238,6 @@ function renderCentralMedia(el) {
   const inner = inlineEl.querySelector(".inline-detail-inner");
   inner.style.setProperty("--cat", `var(--c-${el.cat})`);
   inner.innerHTML = `
-    <button class="detail-close" aria-label="${UI[lang].close}">✕</button>
     <div class="cmedia" data-mode="${img ? "photo" : "diagram"}">
       ${img ? `<img class="media-photo" src="${img.file}" alt="${t(el.name)}">` : ""}
       <div class="media-diagram">${bohrSVG(el)}</div>
@@ -254,7 +253,6 @@ function renderCentralMedia(el) {
         ? `<div class="cmedia-credit">${img.credit}</div>`
         : `<div class="cmedia-note">${UI[lang].noPhoto}</div>`}
     </div>`;
-  inner.querySelector(".detail-close").addEventListener("click", closeDetail);
   const cm = inner.querySelector(".cmedia");
   cm.querySelectorAll(".cmedia-toggle button").forEach(btn =>
     btn.addEventListener("click", () => { cm.dataset.mode = btn.dataset.mode; }));

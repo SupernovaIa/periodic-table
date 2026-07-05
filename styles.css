@@ -282,7 +282,7 @@ main { max-width: 1240px; margin: 0 auto; }
   transform: translate(-50%, -50%);
   width: min(640px, calc(100vw - 420px - 56px));
   height: min(620px, calc(100vh - 140px));
-  z-index: 30;
+  z-index: 45; /* above the dimming overlay (40), below the drawer (50) */
 }
 .inline-detail-inner {
   position: absolute; inset: 0; overflow: hidden;
@@ -354,13 +354,6 @@ main { max-width: 1240px; margin: 0 auto; }
   max-width: 52%; text-align: right; line-height: 1.3;
   text-shadow: 0 1px 4px rgba(0, 0, 0, .8);
 }
-.inline-detail .detail-close {
-  position: absolute; top: 8px; right: 8px; z-index: 3;
-  width: 30px; height: 30px; font-size: 1rem;
-  background: color-mix(in srgb, var(--bg-soft) 80%, transparent);
-  backdrop-filter: blur(4px);
-}
-
 /* Selected element highlight */
 .element.selected {
   box-shadow: 0 0 0 2px var(--cat), 0 6px 18px rgba(0, 0, 0, .5);
