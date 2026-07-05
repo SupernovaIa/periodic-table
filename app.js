@@ -9,6 +9,7 @@ const langEl          = document.getElementById("lang");
 const viewEl          = document.getElementById("view");
 const particleTableEl = document.getElementById("particle-table");
 const particleLegendEl = document.getElementById("particle-legend");
+const tableScrollEl   = document.querySelector(".table-scroll");
 const colorbyEl       = document.getElementById("colorby");
 const trendLegendEl   = document.getElementById("trend-legend");
 const tempControlEl   = document.getElementById("temp-control");
@@ -850,6 +851,7 @@ function openParticleDetail(p) {
 
 function renderParticleCentral(p) {
   stopOrb();
+  inlineEl.classList.add("media");   // float centred (not a grid item in particles view)
   const inner = inlineEl.querySelector(".inline-detail-inner");
   inner.style.setProperty("--cat", `var(--pc-${p.cat})`);
   inner.innerHTML = `
@@ -1017,7 +1019,13 @@ function applyView() {
   const particles = view === "particles";
   tableEl.hidden = particles;
   particleTableEl.hidden = !particles;
-  document.querySelector(".search-box").hidden = particles;
+  // Move the central card out of the (hidden) element table when in particles
+  // view, so the particle orb still renders. Elements: grid gap; particles: the
+  // always-visible scroll wrapper (the orb floats via the .media class anyway).
+  if (inlineEl) {
+    const parent = particles ? tableScrollEl : tableEl;
+    if (inlineEl.parentElement !== parent) parent.appendChild(inlineEl);
+  }
   legendEl.hidden = particles;
   particleLegendEl.hidden = !particles;
   viewEl.querySelectorAll("button").forEach(b =>
