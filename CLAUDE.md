@@ -35,11 +35,12 @@ directamente en el navegador (`open index.html`) y se publica con GitHub Pages.
 - **CSS**: usa las variables de `:root` (colores, tema). Los colores por categoría
   son `--c-<categoria>`.
 - **Sin dependencias ni paso de build**: mantenerlo en HTML/CSS/JS plano.
-- **Ficha del elemento**: en pantallas anchas (≥900px) se muestra **incrustada en el
-  hueco central** de la tabla (`renderInline`, versión compacta con `statsCompactHTML`);
-  en pantallas estrechas cae al **desplegable lateral** (`renderDrawer`, ficha completa).
-  El hueco central es bajo (~200px), así que la versión incrustada es una *preview*:
-  imagen + identidad + descripción (2 líneas) + 5 propiedades clave.
+- **Ficha del elemento**: en pantallas anchas (≥900px), el **hueco central** de la tabla
+  muestra la **imagen/orbitales en grande** (`renderCentralMedia`, con conmutador
+  Photo/Atom) y la **ficha completa** va en el **desplegable lateral** (`renderDrawer`
+  con `media:false, overlay:false`, sin oscurecer para que ambos se vean). En pantallas
+  estrechas todo va al desplegable con imagen y overlay (`renderDrawer` por defecto).
+  La imagen central usa `object-fit:contain` en caja absoluta para no recortarse.
 - **Imágenes de elementos**: el panel muestra la **foto** (`IMAGES[nº]` en `images.js`)
   con un conmutador al **modelo de Bohr**; si un elemento no tiene foto, se muestra
   solo el diagrama. El modelo de Bohr se **genera** desde el número atómico
