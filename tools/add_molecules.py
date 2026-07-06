@@ -70,7 +70,9 @@ def formula_html(formula):
 
 
 def js_str(s):
-    return '"' + s.replace('"', '\\"') + '"'
+    # A JSON string literal is also a valid JS string literal, so json.dumps
+    # gives us correct escaping of quotes, backslashes, newlines and unicode.
+    return json.dumps(s, ensure_ascii=False)
 
 
 def js_bilingual(d):
@@ -78,7 +80,7 @@ def js_bilingual(d):
 
 
 def entry_js(m, formula, mass, atoms, bonds):
-    tags = ",".join(js_str(t) for t in m["tags"])
+    tags = ",".join(js_str(t) for t in m.get("tags", []))
     astr = ",".join(f'[{js_str(s)},{x},{y},{z}]' for s, x, y, z in atoms)
     bstr = ",".join(f"[{a},{b},{o}]" for a, b, o in bonds)
     lines = [

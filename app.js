@@ -143,7 +143,11 @@ function applyFilters() {
   });
 }
 
-searchEl.addEventListener("input", () => { applyFilters(); applyMoleculeFilters(); });
+// The search box is shared across views; filter only the one on screen.
+searchEl.addEventListener("input", () => {
+  if (view === "molecules") applyMoleculeFilters();
+  else applyFilters();
+});
 
 // --- State filter (all / solid / liquid / gas) ---
 function setStateFilter(state) {
@@ -1019,6 +1023,7 @@ function renderParticleDrawer(p, { overlay = true } = {}) {
 
 // --- Molecules (3D) view ---
 let activeMoleculeCategory = null;         // molecule legend filter
+const MOLECULE_BY_ID = new Map(MOLECULES.map(m => [m.id, m]));
 
 // Grid order: by category (legend order), then by size within each category.
 function sortedMolecules() {
@@ -1071,7 +1076,7 @@ function toggleMoleculeCategory(cat) {
 function applyMoleculeFilters() {
   const q = searchEl.value.trim().toLowerCase();
   moleculeTableEl.querySelectorAll(".molecule").forEach(cell => {
-    const m = MOLECULES.find(x => x.id === cell.dataset.mid);
+    const m = MOLECULE_BY_ID.get(cell.dataset.mid);
     const formula = m.s.replace(/<[^>]+>/g, "");
     const matchesText = !q ||
       m.name.en.toLowerCase().includes(q) ||
@@ -1222,7 +1227,7 @@ function startMoleculeStage(canvas, mol) {
 function renderMoleculeThumbs() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   moleculeTableEl.querySelectorAll(".molecule").forEach(cell => {
-    const m = MOLECULES.find(x => x.id === cell.dataset.mid);
+    const m = MOLECULE_BY_ID.get(cell.dataset.mid);
     const canvas = cell.querySelector(".m-thumb");
     const r = canvas.getBoundingClientRect();
     if (!r.width) return;
@@ -1344,7 +1349,11 @@ function applyView() {
   applyTimeline();
   comparePanel.hidden = !(compareMode && isElements);
   stateFilterEl.hidden = !isElements;
-  if (view === "molecules") renderMoleculeThumbs();
+  // The search box is shared; a query left over from the previous view would
+  // otherwise hide everything here. Reset it and re-sync the active view.
+  searchEl.value = "";
+  if (isElements) applyFilters();
+  else if (view === "molecules") { applyMoleculeFilters(); renderMoleculeThumbs(); }
 }
 
 function setView(next) {
@@ -1389,7 +1398,7 @@ function applyLanguage() {
 
   // Molecule card names + legend labels
   moleculeTableEl.querySelectorAll(".molecule").forEach(cell => {
-    const m = MOLECULES.find(x => x.id === cell.dataset.mid);
+    const m = MOLECULE_BY_ID.get(cell.dataset.mid);
     cell.querySelector(".m-name").textContent = t(m.name);
     cell.setAttribute("aria-label", t(m.name));
   });
