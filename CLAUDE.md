@@ -85,3 +85,27 @@ dos idiomas y el panel de detalle abierto.
 - Commits en inglés siguiendo Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`…).
 - Sin atribución de IA en mensajes de commit ni en PRs.
 - No hacer commit ni push sin que el usuario lo pida.
+
+## Flujo de desarrollo
+
+Patrón que seguimos para cada tanda de trabajo:
+
+1. **Rama por feature**: nunca trabajar directamente sobre `main`. Crear
+   `feat/<algo>` (o `fix/…`) al empezar.
+2. **Commits individuales**: un commit por cambio lógico dentro de la rama
+   (feature, fix, refactor, docs…), no un commitón al final.
+3. **Verificar antes de dar por hecho un cambio**: además de la captura en
+   navegador (ver *Verificación*), comprobar el comportamiento con Chrome
+   headless / Playwright cuando aplique (p. ej. deep-links, filtros, arrastre
+   del visor 3D). No fiarse solo de leer el código.
+4. **Revisión de código antes del merge**: pasar `/code-review` sobre el diff
+   de la rama (`main..HEAD`) y **corregir los hallazgos reales** en commits
+   aparte. Si se descarta alguno, dejar constancia del motivo.
+5. **Merge a `main`**: fast-forward (`git merge --ff-only`) para no crear commit
+   de merge, y `git push origin main`. **Ojo**: no hay CI y Pages publica
+   directamente desde `main`, así que **mergear = publicar en vivo**. Confirmar
+   con el usuario antes de mergear/pushear.
+6. **Limpiar**: borrar la rama fusionada (`git branch -d`) al terminar.
+
+Herramientas de apoyo: `tools/add_molecules.py` para importar moléculas de
+PubChem (ver *Convenciones*).
