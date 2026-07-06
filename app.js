@@ -1232,6 +1232,12 @@ function renderMoleculeCentral(m) {
   orbStop = startMoleculeStage(inner.querySelector(".molstage"), m);
 }
 
+// Tag chips (reuses the oxidation-chip styles).
+function moleculeTagsHTML(m) {
+  return `<span class="ox-list">${m.tags.map(tag =>
+    `<span class="ox-chip">${t(MOLECULE_TAGS[tag]) ?? tag}</span>`).join("")}</span>`;
+}
+
 function renderMoleculeDrawer(m, { stage = true, overlay = true } = {}) {
   const L = MOLECULE_UI[lang].labels;
   detailEl.style.setProperty("--cat", `var(--mc-${m.cat})`);
@@ -1255,7 +1261,8 @@ function renderMoleculeDrawer(m, { stage = true, overlay = true } = {}) {
       <div class="stat"><div class="label">${L.mass}</div><div class="value">${m.mass} g/mol</div></div>
       <div class="stat"><div class="label">${L.atoms}</div><div class="value">${m.atoms.length}</div></div>
       <div class="stat"><div class="label">${L.bonds}</div><div class="value">${m.bonds.length}</div></div>
-      <div class="stat wide"><div class="label">${L.geom}</div><div class="value">${t(m.geom)}</div></div>
+      ${m.geom ? `<div class="stat wide"><div class="label">${L.geom}</div><div class="value">${t(m.geom)}</div></div>` : ""}
+      ${m.tags && m.tags.length ? `<div class="stat wide"><div class="label">${L.tags}</div><div class="value">${moleculeTagsHTML(m)}</div></div>` : ""}
     </div>`;
   detailEl.querySelector(".detail-close").addEventListener("click", closeDetail);
   detailEl.hidden = false;
