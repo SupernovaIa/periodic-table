@@ -15,8 +15,10 @@ directamente en el navegador (`open index.html`) y se publica con GitHub Pages.
 | `styles.css`      | Estilos, tema oscuro y tokens de color por categoría.                |
 | `data.js`         | Datos de los 118 elementos + textos de UI (fuente única).            |
 | `particles.js`    | Modelo Estándar: 17 partículas + categorías + textos de la vista.    |
+| `molecules.js`    | Moléculas 3D: catálogo, categorías, etiquetas (tags) y textos.       |
 | `images.js`       | Mapa nº atómico → foto (`images/…`) + crédito de licencia.           |
-| `app.js`          | Render de la tabla, filtros, panel, i18n y modelo de Bohr.           |
+| `app.js`          | Render de la tabla, filtros, panel, i18n, Bohr y visor 3D de moléculas. |
+| `tools/`          | Scripts de mantenimiento (p. ej. importar moléculas de PubChem).     |
 | `images/`         | Fotos de elementos (redimensionadas, de Wikimedia Commons).          |
 | `ATTRIBUTIONS.md` | Atribución/licencia de cada foto (obligatorio por CC-BY).            |
 
@@ -48,11 +50,24 @@ directamente en el navegador (`open index.html`) y se publica con GitHub Pages.
   (`electronShells` / `bohrSVG` en `app.js`), no son assets.
 - **Licencias**: toda foto nueva debe llevar su entrada en `ATTRIBUTIONS.md` y un
   crédito corto en `images.js`. Redimensiona a ~520px para no inflar el repo.
-- **Dos vistas**: conmutador `#view` (Elements / Particles). La vista de partículas
-  muestra el Modelo Estándar (`particles.js`) reutilizando la misma maquinaria
-  (dim, ficha central, panel lateral, i18n, cierre). Título/subtítulo/pie cambian
-  por vista en `updateHeader()`. Ojo: usa `[hidden]{display:none!important}` porque
-  `.periodic-table`/`.particle-table`/`.legend` fijan `display` y taparían `hidden`.
+- **Tres vistas**: conmutador `#view` (Elements / Particles / Molecules). Cada vista
+  reutiliza la misma maquinaria (ficha central, panel lateral, i18n, cierre); el estado
+  `view` es una cadena (no un booleano) y título/subtítulo/pie cambian en `updateHeader()`.
+  Ojo: usa `[hidden]{display:none!important}` porque `.periodic-table`/`.particle-table`/
+  `.molecule-table`/`.legend` fijan `display` y taparían `hidden`.
+- **Vista de moléculas** (`molecules.js` + `app.js`): visor 3D *ball-and-stick* dibujado
+  a mano en canvas (proyección con perspectiva + algoritmo del pintor, `makeMoleculeRenderer`
+  / `startMoleculeStage`), **sin librerías**, con autorrotación y arrastre para rotar.
+  - Cada molécula: `id`, `s` (fórmula HTML), `name`/`about`/`geom` bilingües, `cat`
+    (color, ver `MOLECULE_CATEGORIES`), `tags` (vocabulario `MOLECULE_TAGS`, chips en la
+    ficha y filtrables por el buscador) y geometría real: `atoms` `[símbolo,x,y,z]` en Å
+    + `bonds` `[i,j,orden]` (0-indexado). Colores de átomo en `ATOM_STYLE` (CPK).
+  - **Añadir moléculas**: usa `tools/add_molecules.py <batch.json>` (CID de PubChem +
+    metadatos redactados a mano). PubChem es dominio público; los conformeros 3D no
+    necesitan atribución CC-BY como las fotos. Verifica el CID (¡nombre ≠ CID!) y valida
+    que ids son únicos y los tags existen antes de commitear.
+  - Leyenda clicable filtra por categoría; el buscador `#search` filtra también las
+    tarjetas (nombre EN/ES, fórmula, etiqueta) con placeholder propio por vista.
 
 ## Verificación
 
