@@ -1198,8 +1198,10 @@ function startMoleculeStage(canvas, mol) {
   const onDown = e => { dragging = true; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId); };
   const onMove = e => {
     if (!dragging) return;
-    ay += (e.clientX - lastX) * 0.011;
-    ax += (e.clientY - lastY) * 0.011;
+    // Direct manipulation: the face under the cursor follows it. The projection
+    // maps +ay to a leftward and +ax to an upward shift, so drag deltas subtract.
+    ay -= (e.clientX - lastX) * 0.011;
+    ax -= (e.clientY - lastY) * 0.011;
     ax = Math.max(-1.5, Math.min(1.5, ax));
     lastX = e.clientX; lastY = e.clientY;
     idle = 0;
