@@ -1183,11 +1183,13 @@ function makeMoleculeRenderer(mol) {
   };
 }
 
-// Interactive 3D stage: slow auto-rotation, drag to rotate (pauses while inspecting).
+// Interactive 3D stage: slow auto-rotation, drag to rotate (pauses while
+// inspecting), click without dragging to reset to the opening view and resume.
+const MOL_TILT = -0.35, MOL_TURN = 0.6;   // default orientation (also the reset target)
 function startMoleculeStage(canvas, mol) {
   const draw = makeMoleculeRenderer(mol);
-  let ax = -0.35, ay = 0.6;                 // tilt + turn
-  let dragging = false, lastX = 0, lastY = 0, idle = 999;
+  let ax = MOL_TILT, ay = MOL_TURN;
+  let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0, idle = 999;
 
   const stage = mountCanvas(canvas, (ctx, w, h, dpr, elapsed, dt) => {
     if (!dragging) idle += dt;
@@ -1195,7 +1197,7 @@ function startMoleculeStage(canvas, mol) {
     draw(ctx, w, h, ax, ay);
   });
 
-  const onDown = e => { dragging = true; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId); };
+  const onDown = e => { dragging = true; lastX = downX = e.clientX; lastY = downY = e.clientY; canvas.setPointerCapture(e.pointerId); };
   const onMove = e => {
     if (!dragging) return;
     // Direct manipulation: the face under the cursor follows it. The projection
@@ -1207,18 +1209,27 @@ function startMoleculeStage(canvas, mol) {
     idle = 0;
     if (stage.reduced) stage.redraw();   // no RAF loop when reduced — repaint on drag
   };
-  const onUp = () => { dragging = false; };
+  const onUp = e => {
+    // A click (pointer barely moved) resets to the opening view and lets the
+    // auto-spin resume at once — same as closing and reopening the molecule.
+    if (dragging && Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) < 5) {
+      ax = MOL_TILT; ay = MOL_TURN; idle = 999;
+      if (stage.reduced) stage.redraw();
+    }
+    dragging = false;
+  };
+  const onCancel = () => { dragging = false; };
   canvas.addEventListener("pointerdown", onDown);
   canvas.addEventListener("pointermove", onMove);
   canvas.addEventListener("pointerup", onUp);
-  canvas.addEventListener("pointercancel", onUp);
+  canvas.addEventListener("pointercancel", onCancel);
 
   return () => {
     stage.stop();
     canvas.removeEventListener("pointerdown", onDown);
     canvas.removeEventListener("pointermove", onMove);
     canvas.removeEventListener("pointerup", onUp);
-    canvas.removeEventListener("pointercancel", onUp);
+    canvas.removeEventListener("pointercancel", onCancel);
   };
 }
 
