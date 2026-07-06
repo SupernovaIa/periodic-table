@@ -100,20 +100,27 @@ function makePlaceholder(text, col, row, cat) {
   return ph;
 }
 
-// --- Legend with filters ---
-function buildLegend() {
+// --- Legend, shared by all three views ---
+// `prefix` is the CSS custom-property namespace for the swatch color
+// (--c- elements, --pc- particles, --mc- molecules). Without an onClick the
+// items are static (particles); with one they filter by category.
+function buildLegendInto(container, categories, prefix, onClick) {
   const frag = document.createDocumentFragment();
-  for (const key of Object.keys(CATEGORIES)) {
+  for (const key of Object.keys(categories)) {
     const item = document.createElement("div");
-    item.className = "legend-item";
+    item.className = onClick ? "legend-item" : "legend-item static";
     item.dataset.cat = key;
     item.innerHTML = `
-      <span class="legend-swatch" style="background:var(--c-${key})"></span>
+      <span class="legend-swatch" style="background:var(--${prefix}-${key})"></span>
       <span class="legend-label"></span>`;
-    item.addEventListener("click", () => toggleCategory(key, item));
+    if (onClick) item.addEventListener("click", () => onClick(key, item));
     frag.appendChild(item);
   }
-  legendEl.appendChild(frag);
+  container.appendChild(frag);
+}
+
+function buildLegend() {
+  buildLegendInto(legendEl, CATEGORIES, "c", toggleCategory);
 }
 
 function toggleCategory(cat, item) {
@@ -848,17 +855,7 @@ function buildParticleTable() {
 }
 
 function buildParticleLegend() {
-  const frag = document.createDocumentFragment();
-  for (const key of Object.keys(PARTICLE_CATEGORIES)) {
-    const item = document.createElement("div");
-    item.className = "legend-item static";
-    item.dataset.cat = key;
-    item.innerHTML = `
-      <span class="legend-swatch" style="background:var(--pc-${key})"></span>
-      <span class="legend-label"></span>`;
-    frag.appendChild(item);
-  }
-  particleLegendEl.appendChild(frag);
+  buildLegendInto(particleLegendEl, PARTICLE_CATEGORIES, "pc", null);  // static, no filter
 }
 
 function openParticleDetail(p) {
@@ -939,9 +936,14 @@ function orbConfig(p, color) {
   };
 }
 
-// 3D "particle": a sphere of points that rotates and pulses, tuned per particle.
-// No libraries — just projection + requestAnimationFrame.
-function startParticleOrb(canvas, cfg) {
+// Shared canvas harness for the two 3D stages (particle orb, molecule viewer).
+// Handles device-pixel scaling, resize, prefers-reduced-motion and the RAF loop.
+// onFrame(ctx, w, h, dpr, elapsed, dt) paints one frame (seconds since start,
+// seconds since last frame). Returns { reduced, redraw, stop }:
+//   reduced  true when animation is suppressed (paint once, no loop)
+//   redraw() force a single repaint — for on-demand updates (drag, resize)
+//   stop()   cancel the loop and detach the resize listener
+function mountCanvas(canvas, onFrame) {
   const ctx = canvas.getContext("2d");
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const resize = () => {
@@ -951,6 +953,31 @@ function startParticleOrb(canvas, cfg) {
   };
   resize();
 
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const redraw = (elapsed = 0, dt = 0) => onFrame(ctx, canvas.width, canvas.height, dpr, elapsed, dt);
+  let raf = 0, t0 = null, tPrev = null;
+
+  function frame(ts) {
+    if (t0 == null) t0 = tPrev = ts;
+    const dt = Math.min(0.05, (ts - tPrev) / 1000);
+    tPrev = ts;
+    redraw((ts - t0) / 1000, dt);
+    raf = requestAnimationFrame(frame);
+  }
+  if (reduced) redraw(); else raf = requestAnimationFrame(frame);
+
+  const onResize = () => { resize(); if (reduced) redraw(); };
+  window.addEventListener("resize", onResize);
+  return {
+    reduced,
+    redraw: () => redraw(),
+    stop: () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); }
+  };
+}
+
+// 3D "particle": a sphere of points that rotates and pulses, tuned per particle.
+// No libraries — just projection + the shared canvas harness.
+function startParticleOrb(canvas, cfg) {
   // Points on a sphere (Fibonacci lattice), with a per-point wobble phase whose
   // pattern depends on the particle category.
   const N = cfg.count, pts = [];
@@ -966,11 +993,7 @@ function startParticleOrb(canvas, cfg) {
     pts.push({ x: Math.cos(th) * rad, y, z: Math.sin(th) * rad, ph });
   }
 
-  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let raf = 0, t0 = null;
-
-  function draw(t) {
-    const w = canvas.width, h = canvas.height;
+  const stage = mountCanvas(canvas, (ctx, w, h, dpr, t) => {
     const cx = w / 2, cy = h / 2, R = Math.min(w, h) * cfg.radius;
     ctx.clearRect(0, 0, w, h);
     const ay = t * cfg.spin, ax = Math.sin(t * 0.3) * 0.35;
@@ -994,18 +1017,8 @@ function startParticleOrb(canvas, cfg) {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-  }
-
-  function frame(ts) {
-    if (t0 == null) t0 = ts;
-    draw((ts - t0) / 1000);
-    raf = requestAnimationFrame(frame);
-  }
-  if (reduced) draw(0); else raf = requestAnimationFrame(frame);
-
-  const onResize = () => resize();
-  window.addEventListener("resize", onResize);
-  return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); };
+  });
+  return stage.stop;
 }
 
 function renderParticleDrawer(p, { overlay = true } = {}) {
@@ -1067,18 +1080,7 @@ function buildMoleculeGrid() {
 }
 
 function buildMoleculeLegend() {
-  const frag = document.createDocumentFragment();
-  for (const key of Object.keys(MOLECULE_CATEGORIES)) {
-    const item = document.createElement("div");
-    item.className = "legend-item";
-    item.dataset.cat = key;
-    item.innerHTML = `
-      <span class="legend-swatch" style="background:var(--mc-${key})"></span>
-      <span class="legend-label"></span>`;
-    item.addEventListener("click", () => toggleMoleculeCategory(key));
-    frag.appendChild(item);
-  }
-  moleculeLegendEl.appendChild(frag);
+  buildLegendInto(moleculeLegendEl, MOLECULE_CATEGORIES, "mc", toggleMoleculeCategory);
 }
 
 function toggleMoleculeCategory(cat) {
@@ -1183,20 +1185,15 @@ function makeMoleculeRenderer(mol) {
 
 // Interactive 3D stage: slow auto-rotation, drag to rotate (pauses while inspecting).
 function startMoleculeStage(canvas, mol) {
-  const ctx = canvas.getContext("2d");
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const resize = () => {
-    const r = canvas.getBoundingClientRect();
-    canvas.width = Math.max(1, r.width * dpr);
-    canvas.height = Math.max(1, r.height * dpr);
-  };
-  resize();
-
   const draw = makeMoleculeRenderer(mol);
-  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   let ax = -0.35, ay = 0.6;                 // tilt + turn
   let dragging = false, lastX = 0, lastY = 0, idle = 999;
-  const render = () => draw(ctx, canvas.width, canvas.height, ax, ay);
+
+  const stage = mountCanvas(canvas, (ctx, w, h, dpr, elapsed, dt) => {
+    if (!dragging) idle += dt;
+    if (!dragging && idle > 2.5) ay += dt * 0.35;   // resume the slow spin after inspecting
+    draw(ctx, w, h, ax, ay);
+  });
 
   const onDown = e => { dragging = true; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId); };
   const onMove = e => {
@@ -1206,7 +1203,7 @@ function startMoleculeStage(canvas, mol) {
     ax = Math.max(-1.5, Math.min(1.5, ax));
     lastX = e.clientX; lastY = e.clientY;
     idle = 0;
-    if (reduced) render();
+    if (stage.reduced) stage.redraw();   // no RAF loop when reduced — repaint on drag
   };
   const onUp = () => { dragging = false; };
   canvas.addEventListener("pointerdown", onDown);
@@ -1214,23 +1211,8 @@ function startMoleculeStage(canvas, mol) {
   canvas.addEventListener("pointerup", onUp);
   canvas.addEventListener("pointercancel", onUp);
 
-  let raf = 0, tPrev = null;
-  function frame(ts) {
-    if (tPrev == null) tPrev = ts;
-    const dt = Math.min(0.05, (ts - tPrev) / 1000);
-    tPrev = ts;
-    if (!dragging) idle += dt;
-    if (!dragging && idle > 2.5) ay += dt * 0.35;   // resume the slow spin after inspecting
-    render();
-    raf = requestAnimationFrame(frame);
-  }
-  if (reduced) render(); else raf = requestAnimationFrame(frame);
-
-  const onResize = () => { resize(); if (reduced) render(); };
-  window.addEventListener("resize", onResize);
   return () => {
-    cancelAnimationFrame(raf);
-    window.removeEventListener("resize", onResize);
+    stage.stop();
     canvas.removeEventListener("pointerdown", onDown);
     canvas.removeEventListener("pointermove", onMove);
     canvas.removeEventListener("pointerup", onUp);
