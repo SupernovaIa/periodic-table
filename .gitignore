@@ -1,0 +1,6 @@
+# Python bytecode cache (from tools/)
+__pycache__/
+*.pyc
+
+# OS cruft
+.DS_Store
