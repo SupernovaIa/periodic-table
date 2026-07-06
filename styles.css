@@ -31,6 +31,11 @@
   --pc-lepton:       #5fd08a;
   --pc-gauge-boson:  #ff8a6b;
   --pc-scalar-boson: #ffd76b;
+
+  /* Molecule categories */
+  --mc-inorganic: #62b6ff;
+  --mc-organic:   #71d98c;
+  --mc-bio:       #ff8fb1;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -766,6 +771,77 @@ main { max-width: 1240px; margin: 0 auto; }
 /* Particle symbol tile in the drawer */
 .detail-symbol--particle { color: var(--cat); font-weight: 800; }
 .detail-symbol--particle sub { font-size: .45em; vertical-align: baseline; position: relative; top: .2em; }
+
+/* --- Molecules (3D) view --- */
+.molecule-table {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  max-width: 860px;
+  margin: 6px auto 0;
+}
+.molecule {
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--cat) 45%, transparent);
+  background: color-mix(in srgb, var(--cat) 12%, var(--panel));
+  color: var(--text);
+  cursor: pointer;
+  padding: 10px 10px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s;
+}
+.molecule:hover, .molecule:focus-visible {
+  transform: translateY(-3px) scale(1.03);
+  background: color-mix(in srgb, var(--cat) 24%, var(--panel));
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .5), 0 0 0 1px var(--cat);
+  z-index: 5; outline: none;
+}
+.molecule.selected { box-shadow: 0 0 0 2px var(--cat), 0 6px 18px rgba(0, 0, 0, .5); z-index: 4; }
+.molecule .m-thumb {
+  width: 100%; aspect-ratio: 4 / 3; display: block;
+  pointer-events: none;
+}
+.molecule .m-formula { font-size: 1.15rem; font-weight: 800; line-height: 1; }
+.molecule .m-formula sub { font-size: .6em; font-weight: 700; }
+.molecule .m-name { font-size: .72rem; color: var(--text-dim); text-align: center; line-height: 1.15; }
+
+/* Molecule central hero (reuses .inline-detail container, like .pmedia) */
+.mmedia {
+  position: absolute; inset: 0;
+  display: grid; place-content: center; justify-items: center; gap: 10px;
+  text-align: center; padding: 24px;
+  background:
+    radial-gradient(260px 260px at 50% 45%, color-mix(in srgb, var(--cat) 18%, transparent), transparent),
+    var(--bg-soft);
+}
+.molstage-wrap { position: relative; width: min(420px, 62vmin); aspect-ratio: 1 / 1; }
+.molstage { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+.molstage:active { cursor: grabbing; }
+.molstage-hint {
+  position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+  font-size: .68rem; color: var(--text-dim); pointer-events: none; white-space: nowrap;
+}
+.m-formula-inline { color: var(--text-dim); font-weight: 600; }
+.m-formula-inline sub { font-size: .6em; }
+
+/* 3D stage inside the drawer (narrow screens) */
+.molstage-wrap--drawer {
+  width: 100%; aspect-ratio: 1 / 1; margin: 18px 0 4px;
+  border-radius: 14px; overflow: hidden;
+  background:
+    radial-gradient(200px 200px at 50% 45%, color-mix(in srgb, var(--cat) 16%, transparent), transparent),
+    var(--bg-soft);
+  border: 1px solid var(--border);
+}
+
+/* Formula tile in the drawer: auto width so long formulas stay on one line.
+   Doubled class beats the narrow-screen .detail-symbol override further down. */
+.detail-symbol.detail-symbol--molecule {
+  color: var(--cat); font-weight: 800; font-size: 1.35rem;
+  width: auto; min-width: 96px; padding: 0 14px; white-space: nowrap;
+}
+.detail-symbol--molecule sub { font-size: .6em; font-weight: 700; }
 
 .site-footer { text-align: center; color: var(--text-dim); font-size: .8rem; margin-top: 40px; }
 

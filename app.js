@@ -9,6 +9,8 @@ const langEl          = document.getElementById("lang");
 const viewEl          = document.getElementById("view");
 const particleTableEl = document.getElementById("particle-table");
 const particleLegendEl = document.getElementById("particle-legend");
+const moleculeTableEl  = document.getElementById("molecule-table");
+const moleculeLegendEl = document.getElementById("molecule-legend");
 const tableScrollEl   = document.querySelector(".table-scroll");
 const colorbyEl       = document.getElementById("colorby");
 const trendLegendEl   = document.getElementById("trend-legend");
@@ -41,8 +43,9 @@ let tempK = 295;                           // temperature (K) for the "temp" col
 const STATE_COLOR = { solid: "var(--state-solid)", liquid: "var(--state-liquid)", gas: "var(--state-gas)" };
 let openElement = null;                    // element shown in the panel, if any
 let openParticle = null;                   // particle shown in the panel, if any
+let openMolecule = null;                   // molecule shown in the panel, if any
 let inlineEl = null;                       // central floating detail card
-let orbStop = null;                        // stops the 3D particle animation
+let orbStop = null;                        // stops the active 3D animation (orb / molecule)
 let lang = localStorage.getItem("lang") || "en";
 let view = localStorage.getItem("view") || "elements";
 
@@ -671,6 +674,7 @@ window.addEventListener("hashchange", () => {
 function openDetail(el) {
   openElement = el;
   openParticle = null;
+  openMolecule = null;
   setHash(el.s);
   markSelected(el);
   if (isWide()) {
@@ -787,6 +791,7 @@ function renderDrawer(el, { media = true, overlay = true } = {}) {
 function closeDetail() {
   openElement = null;
   openParticle = null;
+  openMolecule = null;
   stopOrb();
   clearSelected();
   detailEl.hidden = true;
@@ -839,6 +844,7 @@ function buildParticleLegend() {
 function openParticleDetail(p) {
   openParticle = p;
   openElement = null;
+  openMolecule = null;
   clearSelected();
   const cell = particleTableEl.querySelector(`.particle[data-pid="${p.id}"]`);
   if (cell) cell.classList.add("selected");
@@ -1011,35 +1017,290 @@ function renderParticleDrawer(p, { overlay = true } = {}) {
   detailEl.scrollTop = 0;
 }
 
+// --- Molecules (3D) view ---
+function buildMoleculeGrid() {
+  const frag = document.createDocumentFragment();
+  for (const m of MOLECULES) {
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "molecule";
+    cell.style.setProperty("--cat", `var(--mc-${m.cat})`);
+    cell.dataset.mid = m.id;
+    cell.innerHTML = `
+      <canvas class="m-thumb" aria-hidden="true"></canvas>
+      <span class="m-formula">${m.s}</span>
+      <span class="m-name"></span>`;
+    cell.addEventListener("click", () => openMoleculeDetail(m));
+    frag.appendChild(cell);
+  }
+  moleculeTableEl.appendChild(frag);
+}
+
+function buildMoleculeLegend() {
+  const frag = document.createDocumentFragment();
+  for (const key of Object.keys(MOLECULE_CATEGORIES)) {
+    const item = document.createElement("div");
+    item.className = "legend-item static";
+    item.dataset.cat = key;
+    item.innerHTML = `
+      <span class="legend-swatch" style="background:var(--mc-${key})"></span>
+      <span class="legend-label"></span>`;
+    frag.appendChild(item);
+  }
+  moleculeLegendEl.appendChild(frag);
+}
+
+// Ball-and-stick renderer: perspective projection + painter's algorithm,
+// same spirit as the particle orb — no libraries, just canvas 2D.
+// Returns a draw(ctx, w, h, rotX, rotY) closure for one molecule.
+function makeMoleculeRenderer(mol) {
+  const atoms = mol.atoms.map(([s, x, y, z]) => ({ x, y, z, st: ATOM_STYLE[s] || ATOM_STYLE_DEFAULT }));
+  // Fit radius includes atom size so big balls never clip at the edges.
+  let fit = 1;
+  for (const a of atoms) fit = Math.max(fit, Math.hypot(a.x, a.y, a.z) + a.st.r * 1.6);
+
+  const shade = (hex, f) => {                       // lighten (f>0) / darken (f<0) a #rrggbb
+    const n = parseInt(hex.slice(1), 16);
+    const ch = s => Math.max(0, Math.min(255, Math.round(((n >> s) & 255) + 255 * f)));
+    return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+  };
+
+  return function draw(ctx, w, h, ax, ay) {
+    ctx.clearRect(0, 0, w, h);
+    const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.62;
+    const cY = Math.cos(ay), sY = Math.sin(ay), cX = Math.cos(ax), sX = Math.sin(ax);
+    const proj = atoms.map(a => {
+      const nx = a.x / fit, ny = a.y / fit, nz = a.z / fit;
+      const x1 = nx * cY - nz * sY, z1 = nx * sY + nz * cY;   // rotate Y
+      const y1 = ny * cX - z1 * sX, z2 = ny * sX + z1 * cX;   // rotate X
+      const persp = 1 / (1.8 - z2 * 0.4);
+      return { sx: cx + x1 * R * persp, sy: cy + y1 * R * persp,
+               z: z2, r: a.st.r / fit * R * persp, st: a.st, persp };
+    });
+
+    // Painter's algorithm over atoms + half-bonds (each half takes its atom's color).
+    const prims = proj.map(p => ({ z: p.z, kind: "atom", p }));
+    for (const [i, j, order] of mol.bonds) {
+      const a = proj[i], b = proj[j];
+      const mx = (a.sx + b.sx) / 2, my = (a.sy + b.sy) / 2, mz = (a.z + b.z) / 2;
+      const dx = b.sx - a.sx, dy = b.sy - a.sy;
+      const len = Math.hypot(dx, dy) || 1;
+      const px = -dy / len, py = dx / len;                    // screen-space perpendicular
+      const lw = 0.09 / fit * R * (a.persp + b.persp);
+      const offsets = order === 1 ? [0] : order === 2 ? [-1.1, 1.1] : [-1.8, 0, 1.8];
+      for (const o of offsets) {
+        const ox = px * lw * o, oy = py * lw * o;
+        const wd = lw / (order > 1 ? 1.6 : 1);
+        prims.push({ z: (a.z * 3 + b.z) / 4, kind: "bond",
+                     x1: a.sx + ox, y1: a.sy + oy, x2: mx + ox, y2: my + oy, wd, color: a.st.color });
+        prims.push({ z: (b.z * 3 + a.z) / 4, kind: "bond",
+                     x1: mx + ox, y1: my + oy, x2: b.sx + ox, y2: b.sy + oy, wd, color: b.st.color });
+      }
+    }
+    prims.sort((p, q) => p.z - q.z);                          // back-to-front
+
+    for (const pr of prims) {
+      const depth = (pr.z + 1) / 2;                           // 0..1 depth cue
+      ctx.globalAlpha = 0.62 + depth * 0.38;
+      if (pr.kind === "bond") {
+        ctx.strokeStyle = pr.color;
+        ctx.lineWidth = pr.wd;
+        ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(pr.x1, pr.y1); ctx.lineTo(pr.x2, pr.y2); ctx.stroke();
+      } else {
+        const { sx, sy, r, st } = pr.p;
+        const g = ctx.createRadialGradient(sx - r * 0.35, sy - r * 0.4, r * 0.12, sx, sy, r);
+        g.addColorStop(0, shade(st.color, 0.28));
+        g.addColorStop(0.55, st.color);
+        g.addColorStop(1, shade(st.color, -0.30));
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(8,12,22,.55)";
+        ctx.lineWidth = Math.max(1, r * 0.07);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+  };
+}
+
+// Interactive 3D stage: slow auto-rotation, drag to rotate (pauses while inspecting).
+function startMoleculeStage(canvas, mol) {
+  const ctx = canvas.getContext("2d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const resize = () => {
+    const r = canvas.getBoundingClientRect();
+    canvas.width = Math.max(1, r.width * dpr);
+    canvas.height = Math.max(1, r.height * dpr);
+  };
+  resize();
+
+  const draw = makeMoleculeRenderer(mol);
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let ax = -0.35, ay = 0.6;                 // tilt + turn
+  let dragging = false, lastX = 0, lastY = 0, idle = 999;
+  const render = () => draw(ctx, canvas.width, canvas.height, ax, ay);
+
+  const onDown = e => { dragging = true; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId); };
+  const onMove = e => {
+    if (!dragging) return;
+    ay += (e.clientX - lastX) * 0.011;
+    ax += (e.clientY - lastY) * 0.011;
+    ax = Math.max(-1.5, Math.min(1.5, ax));
+    lastX = e.clientX; lastY = e.clientY;
+    idle = 0;
+    if (reduced) render();
+  };
+  const onUp = () => { dragging = false; };
+  canvas.addEventListener("pointerdown", onDown);
+  canvas.addEventListener("pointermove", onMove);
+  canvas.addEventListener("pointerup", onUp);
+  canvas.addEventListener("pointercancel", onUp);
+
+  let raf = 0, tPrev = null;
+  function frame(ts) {
+    if (tPrev == null) tPrev = ts;
+    const dt = Math.min(0.05, (ts - tPrev) / 1000);
+    tPrev = ts;
+    if (!dragging) idle += dt;
+    if (!dragging && idle > 2.5) ay += dt * 0.35;   // resume the slow spin after inspecting
+    render();
+    raf = requestAnimationFrame(frame);
+  }
+  if (reduced) render(); else raf = requestAnimationFrame(frame);
+
+  const onResize = () => { resize(); if (reduced) render(); };
+  window.addEventListener("resize", onResize);
+  return () => {
+    cancelAnimationFrame(raf);
+    window.removeEventListener("resize", onResize);
+    canvas.removeEventListener("pointerdown", onDown);
+    canvas.removeEventListener("pointermove", onMove);
+    canvas.removeEventListener("pointerup", onUp);
+    canvas.removeEventListener("pointercancel", onUp);
+  };
+}
+
+// Static mini-render inside each grid card. Cheap, so it just redraws on demand
+// (view switch / resize) — canvases have zero size while the view is hidden.
+function renderMoleculeThumbs() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  moleculeTableEl.querySelectorAll(".molecule").forEach(cell => {
+    const m = MOLECULES.find(x => x.id === cell.dataset.mid);
+    const canvas = cell.querySelector(".m-thumb");
+    const r = canvas.getBoundingClientRect();
+    if (!r.width) return;
+    canvas.width = r.width * dpr;
+    canvas.height = r.height * dpr;
+    makeMoleculeRenderer(m)(canvas.getContext("2d"), canvas.width, canvas.height, -0.35, 0.6);
+  });
+}
+window.addEventListener("resize", () => { if (view === "molecules") renderMoleculeThumbs(); });
+
+function openMoleculeDetail(m) {
+  openMolecule = m;
+  openElement = null;
+  openParticle = null;
+  clearSelected();
+  const cell = moleculeTableEl.querySelector(`.molecule[data-mid="${m.id}"]`);
+  if (cell) cell.classList.add("selected");
+  if (isWide()) {
+    renderMoleculeCentral(m);
+    renderMoleculeDrawer(m, { stage: false, overlay: true });
+  } else {
+    if (inlineEl) inlineEl.hidden = true;
+    renderMoleculeDrawer(m, { stage: true, overlay: true });
+  }
+}
+
+function renderMoleculeCentral(m) {
+  stopOrb();
+  inlineEl.classList.add("media");   // float centred (same trick as the particle orb)
+  inlineEl.classList.remove("idle");
+  const inner = inlineEl.querySelector(".inline-detail-inner");
+  inner.style.setProperty("--cat", `var(--mc-${m.cat})`);
+  inner.innerHTML = `
+    <div class="mmedia">
+      <div class="molstage-wrap">
+        <canvas class="molstage"></canvas>
+        <span class="molstage-hint">${MOLECULE_UI[lang].drag}</span>
+      </div>
+      <div class="pmedia-name">${t(m.name)} · <span class="m-formula-inline">${m.s}</span></div>
+      <span class="detail-badge">${t(MOLECULE_CATEGORIES[m.cat])}</span>
+    </div>`;
+  inlineEl.hidden = false;
+  orbStop = startMoleculeStage(inner.querySelector(".molstage"), m);
+}
+
+function renderMoleculeDrawer(m, { stage = true, overlay = true } = {}) {
+  const L = MOLECULE_UI[lang].labels;
+  detailEl.style.setProperty("--cat", `var(--mc-${m.cat})`);
+  detailEl.innerHTML = `
+    <button class="detail-close" aria-label="${UI[lang].close}">✕</button>
+    <span class="detail-badge">${t(MOLECULE_CATEGORIES[m.cat])}</span>
+    <div class="detail-head">
+      <div class="detail-symbol detail-symbol--molecule"><span>${m.s}</span></div>
+      <div class="detail-title">
+        <h2>${t(m.name)}</h2>
+        <div class="mass">${L.mass}: ${m.mass} g/mol</div>
+      </div>
+    </div>
+    ${stage ? `<div class="molstage-wrap molstage-wrap--drawer">
+      <canvas class="molstage"></canvas>
+      <span class="molstage-hint">${MOLECULE_UI[lang].drag}</span>
+    </div>` : ""}
+    <p class="detail-about">${t(m.about)}</p>
+    <div class="detail-grid">
+      <div class="stat"><div class="label">${L.type}</div><div class="value">${t(MOLECULE_CATEGORIES[m.cat])}</div></div>
+      <div class="stat"><div class="label">${L.mass}</div><div class="value">${m.mass} g/mol</div></div>
+      <div class="stat"><div class="label">${L.atoms}</div><div class="value">${m.atoms.length}</div></div>
+      <div class="stat"><div class="label">${L.bonds}</div><div class="value">${m.bonds.length}</div></div>
+      <div class="stat wide"><div class="label">${L.geom}</div><div class="value">${t(m.geom)}</div></div>
+    </div>`;
+  detailEl.querySelector(".detail-close").addEventListener("click", closeDetail);
+  detailEl.hidden = false;
+  overlayEl.hidden = !overlay;
+  detailEl.scrollTop = 0;
+  if (stage) {
+    stopOrb();
+    orbStop = startMoleculeStage(detailEl.querySelector(".molstage"), m);
+  }
+}
+
 function updateHeader() {
-  const particles = view === "particles";
-  document.getElementById("title").textContent = particles ? PARTICLE_UI[lang].title : UI[lang].title;
-  document.getElementById("subtitle").textContent = particles ? PARTICLE_UI[lang].subtitle : UI[lang].subtitle;
-  document.getElementById("footer-text").textContent = particles ? PARTICLE_UI[lang].footer : UI[lang].footer;
+  const src = view === "particles" ? PARTICLE_UI[lang]
+            : view === "molecules" ? MOLECULE_UI[lang]
+            : UI[lang];
+  document.getElementById("title").textContent = src.title;
+  document.getElementById("subtitle").textContent = src.subtitle;
+  document.getElementById("footer-text").textContent = src.footer;
 }
 
 function applyView() {
-  const particles = view === "particles";
-  tableEl.hidden = particles;
-  particleTableEl.hidden = !particles;
-  // Move the central card out of the (hidden) element table when in particles
-  // view, so the particle orb still renders. Elements: grid gap; particles: the
-  // always-visible scroll wrapper (the orb floats via the .media class anyway).
+  const isElements = view === "elements";
+  tableEl.hidden = !isElements;
+  particleTableEl.hidden = view !== "particles";
+  moleculeTableEl.hidden = view !== "molecules";
+  // Move the central card out of the (hidden) element table when in the other
+  // views, so their central hero still renders. Elements: grid gap; otherwise:
+  // the always-visible scroll wrapper (the hero floats via the .media class).
   if (inlineEl) {
-    const parent = particles ? tableScrollEl : tableEl;
+    const parent = isElements ? tableEl : tableScrollEl;
     if (inlineEl.parentElement !== parent) parent.appendChild(inlineEl);
   }
-  legendEl.hidden = particles;
-  particleLegendEl.hidden = !particles;
+  legendEl.hidden = !isElements;
+  particleLegendEl.hidden = view !== "particles";
+  moleculeLegendEl.hidden = view !== "molecules";
   viewEl.querySelectorAll("button").forEach(b =>
     b.classList.toggle("active", b.dataset.view === view));
   closeDetail();
   updateHeader();
   applyColorMode();
-  timelineEl.hidden = view !== "elements";
+  timelineEl.hidden = !isElements;
   applyTimeline();
-  comparePanel.hidden = !(compareMode && view === "elements");
-  stateFilterEl.hidden = view !== "elements";
+  comparePanel.hidden = !(compareMode && isElements);
+  stateFilterEl.hidden = !isElements;
+  if (view === "molecules") renderMoleculeThumbs();
 }
 
 function setView(next) {
@@ -1083,9 +1344,20 @@ function applyLanguage() {
     item.querySelector(".legend-label").textContent = t(PARTICLE_CATEGORIES[item.dataset.cat]);
   });
 
+  // Molecule card names + legend labels
+  moleculeTableEl.querySelectorAll(".molecule").forEach(cell => {
+    const m = MOLECULES.find(x => x.id === cell.dataset.mid);
+    cell.querySelector(".m-name").textContent = t(m.name);
+    cell.setAttribute("aria-label", t(m.name));
+  });
+  moleculeLegendEl.querySelectorAll(".legend-item").forEach(item => {
+    item.querySelector(".legend-label").textContent = t(MOLECULE_CATEGORIES[item.dataset.cat]);
+  });
+
   // View switch buttons
   viewEl.querySelector('[data-view="elements"]').textContent = PARTICLE_UI[lang].elements;
   viewEl.querySelector('[data-view="particles"]').textContent = PARTICLE_UI[lang].particles;
+  viewEl.querySelector('[data-view="molecules"]').textContent = MOLECULE_UI[lang].molecules;
 
   // Color-by control (label + pill names) and, if active, the gradient legend
   document.getElementById("colorby-label").textContent = u.colorBy;
@@ -1116,6 +1388,7 @@ function applyLanguage() {
   // Re-render the open panel in the new language
   if (openElement) openDetail(openElement);
   else if (openParticle) openParticleDetail(openParticle);
+  else if (openMolecule) openMoleculeDetail(openMolecule);
 }
 
 function setLanguage(next) {
@@ -1206,6 +1479,8 @@ buildTable();
 buildLegend();
 buildParticleTable();
 buildParticleLegend();
+buildMoleculeGrid();
+buildMoleculeLegend();
 initTimeline();
 indexCells();
 const initialHash = location.hash;   // capture before applyView() clears it

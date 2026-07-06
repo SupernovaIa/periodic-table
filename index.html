@@ -25,6 +25,7 @@
         <div class="view-switch" id="view" role="group" aria-label="View">
           <button type="button" data-view="elements">Elements</button>
           <button type="button" data-view="particles">Particles</button>
+          <button type="button" data-view="molecules">Molecules</button>
         </div>
         <div class="lang-switch" id="lang" role="group" aria-label="Language">
           <button type="button" data-lang="en" aria-label="English">EN</button>
@@ -89,11 +90,13 @@
     <div class="table-scroll">
       <div class="periodic-table" id="table"></div>
       <div class="particle-table" id="particle-table" hidden></div>
+      <div class="molecule-table" id="molecule-table" hidden></div>
     </div>
 
     <div class="legend-bar">
       <div class="legend" id="legend"></div>
       <div class="legend" id="particle-legend" hidden></div>
+      <div class="legend" id="molecule-legend" hidden></div>
     </div>
   </main>
 
@@ -110,6 +113,7 @@
   <script src="data.js"></script>
   <script src="images.js"></script>
   <script src="particles.js"></script>
+  <script src="molecules.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
