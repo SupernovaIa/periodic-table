@@ -63,6 +63,7 @@ const MOLECULE_UI = {
     subtitle: "Chemistry · Interactive",
     footer: "3D structures from PubChem · data for educational purposes",
     drag: "Drag to rotate",
+    search: "Search molecule, formula or tag…",
     labels: {
       formula: "Formula", mass: "Molar mass", atoms: "Atoms",
       bonds: "Bonds", geom: "Shape", type: "Type", tags: "Tags"
@@ -74,6 +75,7 @@ const MOLECULE_UI = {
     subtitle: "Química · Interactiva",
     footer: "Estructuras 3D de PubChem · datos con fines educativos",
     drag: "Arrastra para rotar",
+    search: "Busca molécula, fórmula o etiqueta…",
     labels: {
       formula: "Fórmula", mass: "Masa molar", atoms: "Átomos",
       bonds: "Enlaces", geom: "Geometría", type: "Tipo", tags: "Etiquetas"

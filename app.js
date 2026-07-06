@@ -143,7 +143,7 @@ function applyFilters() {
   });
 }
 
-searchEl.addEventListener("input", applyFilters);
+searchEl.addEventListener("input", () => { applyFilters(); applyMoleculeFilters(); });
 
 // --- State filter (all / solid / liquid / gas) ---
 function setStateFilter(state) {
@@ -1018,9 +1018,18 @@ function renderParticleDrawer(p, { overlay = true } = {}) {
 }
 
 // --- Molecules (3D) view ---
+let activeMoleculeCategory = null;         // molecule legend filter
+
+// Grid order: by category (legend order), then by size within each category.
+function sortedMolecules() {
+  const order = Object.keys(MOLECULE_CATEGORIES);
+  return [...MOLECULES].sort((a, b) =>
+    order.indexOf(a.cat) - order.indexOf(b.cat) || a.atoms.length - b.atoms.length);
+}
+
 function buildMoleculeGrid() {
   const frag = document.createDocumentFragment();
-  for (const m of MOLECULES) {
+  for (const m of sortedMolecules()) {
     const cell = document.createElement("button");
     cell.type = "button";
     cell.className = "molecule";
@@ -1040,14 +1049,41 @@ function buildMoleculeLegend() {
   const frag = document.createDocumentFragment();
   for (const key of Object.keys(MOLECULE_CATEGORIES)) {
     const item = document.createElement("div");
-    item.className = "legend-item static";
+    item.className = "legend-item";
     item.dataset.cat = key;
     item.innerHTML = `
       <span class="legend-swatch" style="background:var(--mc-${key})"></span>
       <span class="legend-label"></span>`;
+    item.addEventListener("click", () => toggleMoleculeCategory(key));
     frag.appendChild(item);
   }
   moleculeLegendEl.appendChild(frag);
+}
+
+function toggleMoleculeCategory(cat) {
+  activeMoleculeCategory = activeMoleculeCategory === cat ? null : cat;
+  moleculeLegendEl.querySelectorAll(".legend-item").forEach(i =>
+    i.classList.toggle("dimmed", activeMoleculeCategory !== null && i.dataset.cat !== activeMoleculeCategory));
+  applyMoleculeFilters();
+}
+
+// Search (name in both languages, formula, tag labels) + category filter.
+function applyMoleculeFilters() {
+  const q = searchEl.value.trim().toLowerCase();
+  moleculeTableEl.querySelectorAll(".molecule").forEach(cell => {
+    const m = MOLECULES.find(x => x.id === cell.dataset.mid);
+    const formula = m.s.replace(/<[^>]+>/g, "");
+    const matchesText = !q ||
+      m.name.en.toLowerCase().includes(q) ||
+      m.name.es.toLowerCase().includes(q) ||
+      formula.toLowerCase().includes(q) ||
+      (m.tags || []).some(tag => {
+        const label = MOLECULE_TAGS[tag];
+        return label && (label.en.toLowerCase().includes(q) || label.es.toLowerCase().includes(q));
+      });
+    const matchesCat = !activeMoleculeCategory || m.cat === activeMoleculeCategory;
+    cell.classList.toggle("hidden", !(matchesText && matchesCat));
+  });
 }
 
 // Ball-and-stick renderer: perspective projection + painter's algorithm,
@@ -1281,6 +1317,7 @@ function updateHeader() {
   document.getElementById("title").textContent = src.title;
   document.getElementById("subtitle").textContent = src.subtitle;
   document.getElementById("footer-text").textContent = src.footer;
+  searchEl.placeholder = view === "molecules" ? MOLECULE_UI[lang].search : UI[lang].search;
 }
 
 function applyView() {
@@ -1324,8 +1361,7 @@ viewEl.querySelectorAll("button").forEach(b =>
 function applyLanguage() {
   const u = UI[lang];
   document.documentElement.lang = lang;
-  updateHeader();
-  searchEl.placeholder = u.search;
+  updateHeader();   // header texts + view-aware search placeholder
 
   // Element cell names + aria labels
   tableEl.querySelectorAll(".element:not(.f-placeholder)").forEach(cell => {

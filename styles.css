@@ -799,6 +799,7 @@ main { max-width: 1240px; margin: 0 auto; }
   z-index: 5; outline: none;
 }
 .molecule.selected { box-shadow: 0 0 0 2px var(--cat), 0 6px 18px rgba(0, 0, 0, .5); z-index: 4; }
+.molecule.hidden { opacity: .12; pointer-events: none; filter: grayscale(1); }
 .molecule .m-thumb {
   width: 100%; aspect-ratio: 4 / 3; display: block;
   pointer-events: none;
