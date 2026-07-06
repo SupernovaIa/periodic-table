@@ -68,6 +68,11 @@ directamente en el navegador (`open index.html`) y se publica con GitHub Pages.
     que ids son únicos y los tags existen antes de commitear.
   - Leyenda clicable filtra por categoría; el buscador `#search` filtra también las
     tarjetas (nombre EN/ES, fórmula, etiqueta) con placeholder propio por vista.
+  - **Deep-links**: el hash de la URL refleja lo abierto. Elementos usan símbolo o
+    número (`#Fe`, `#26`); moléculas usan su `id` (`#caffeine`). `openFromHash`
+    resuelve primero elemento y luego molécula (los ids son palabras completas, no
+    chocan con símbolos de 1-2 letras) y conmuta a la vista correcta. Botón "Copy link"
+    en el desplegable, igual que en elementos.
 
 ## Verificación
 

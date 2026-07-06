@@ -631,21 +631,38 @@ const isWide = () => window.matchMedia("(min-width: 900px)").matches;
 // Wide screens: a big image/orbital fills the central gap while the full data
 // lives in the side drawer (no dimming overlay, so the central visual stays
 // visible). Narrow screens: everything goes in the drawer, image included.
-// --- Deep link: reflect the open element in the URL hash (#Fe) ---
+// --- Deep link: reflect the open item in the URL hash ---
+// Elements use their symbol or atomic number (#Fe, #26); molecules use their
+// id (#caffeine). Resolution tries elements first, then molecules — molecule
+// ids are whole words so they never collide with 1-2 letter element symbols.
+function hashKey(hash = location.hash) {
+  return decodeURIComponent(hash.replace(/^#/, "")).trim();
+}
 function elementFromHash(hash = location.hash) {
-  const h = decodeURIComponent(hash.replace(/^#/, "")).trim();
+  const h = hashKey(hash);
   if (!h) return null;
   return ELEMENTS.find(e => e.s.toLowerCase() === h.toLowerCase())
       || ELEMENTS.find(e => String(e.n) === h) || null;
 }
-function setHash(symbol) {
-  history.replaceState(null, "", symbol ? `#${symbol}` : location.pathname + location.search);
+function moleculeFromHash(hash = location.hash) {
+  const h = hashKey(hash).toLowerCase();
+  return h ? (MOLECULE_BY_ID.get(h) || null) : null;
+}
+function setHash(key) {
+  history.replaceState(null, "", key ? `#${key}` : location.pathname + location.search);
 }
 function openFromHash(hash = location.hash) {
   const el = elementFromHash(hash);
-  if (!el) return;
-  if (view !== "elements") setView("elements");
-  openDetail(el);
+  if (el) {
+    if (view !== "elements") setView("elements");
+    openDetail(el);
+    return;
+  }
+  const mol = moleculeFromHash(hash);
+  if (mol) {
+    if (view !== "molecules") setView("molecules");
+    openMoleculeDetail(mol);
+  }
 }
 function copyText(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
@@ -670,9 +687,8 @@ function copyElementLink(btn) {
 }
 
 window.addEventListener("hashchange", () => {
-  const el = elementFromHash();
-  if (el) openFromHash();
-  else if (openElement) closeDetail();
+  if (elementFromHash() || moleculeFromHash()) openFromHash();
+  else if (openElement || openMolecule) closeDetail();
 });
 
 function openDetail(el) {
@@ -1242,6 +1258,7 @@ function openMoleculeDetail(m) {
   openMolecule = m;
   openElement = null;
   openParticle = null;
+  setHash(m.id);
   clearSelected();
   const cell = moleculeTableEl.querySelector(`.molecule[data-mid="${m.id}"]`);
   if (cell) cell.classList.add("selected");
@@ -1292,6 +1309,7 @@ function renderMoleculeDrawer(m, { stage = true, overlay = true } = {}) {
         <div class="mass">${L.mass}: ${m.mass} g/mol</div>
       </div>
     </div>
+    <button class="detail-share" type="button">🔗 <span>${UI[lang].copyLink}</span></button>
     ${stage ? `<div class="molstage-wrap molstage-wrap--drawer">
       <canvas class="molstage"></canvas>
       <span class="molstage-hint">${MOLECULE_UI[lang].drag}</span>
@@ -1306,6 +1324,7 @@ function renderMoleculeDrawer(m, { stage = true, overlay = true } = {}) {
       ${m.tags && m.tags.length ? `<div class="stat wide"><div class="label">${L.tags}</div><div class="value">${moleculeTagsHTML(m)}</div></div>` : ""}
     </div>`;
   detailEl.querySelector(".detail-close").addEventListener("click", closeDetail);
+  detailEl.querySelector(".detail-share").addEventListener("click", e => copyElementLink(e.currentTarget));
   detailEl.hidden = false;
   overlayEl.hidden = !overlay;
   detailEl.scrollTop = 0;
