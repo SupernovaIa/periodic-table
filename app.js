@@ -643,7 +643,10 @@ const isWide = () => window.matchMedia("(min-width: 900px)").matches;
 // id (#caffeine). Resolution tries elements first, then molecules — molecule
 // ids are whole words so they never collide with 1-2 letter element symbols.
 function hashKey(hash = location.hash) {
-  return decodeURIComponent(hash.replace(/^#/, "")).trim();
+  const raw = hash.replace(/^#/, "").trim();
+  // A malformed percent-escape (e.g. #%zz) would throw; fall back to the raw
+  // text so a bad hash simply matches nothing instead of crashing deep-linking.
+  try { return decodeURIComponent(raw); } catch { return raw; }
 }
 function elementFromHash(hash = location.hash) {
   const h = hashKey(hash);
@@ -686,11 +689,13 @@ function copyText(text) {
 }
 function copyElementLink(btn) {
   const label = btn.querySelector("span");
-  copyText(location.href).finally(() => {
+  // Only confirm on a successful copy — reporting "Copied!" after a rejected
+  // clipboard write (non-secure context, denied permission) would be a lie.
+  copyText(location.href).then(() => {
     label.textContent = UI[lang].copied;
     btn.classList.add("copied");
     setTimeout(() => { label.textContent = UI[lang].copyLink; btn.classList.remove("copied"); }, 1600);
-  });
+  }).catch(() => {});
 }
 
 window.addEventListener("hashchange", () => {
@@ -1244,7 +1249,7 @@ function renderMoleculeThumbs() {
     if (!r.width) return;
     canvas.width = r.width * dpr;
     canvas.height = r.height * dpr;
-    makeMoleculeRenderer(m)(canvas.getContext("2d"), canvas.width, canvas.height, -0.35, 0.6);
+    makeMoleculeRenderer(m)(canvas.getContext("2d"), canvas.width, canvas.height, MOL_TILT, MOL_TURN);
   });
 }
 window.addEventListener("resize", () => { if (view === "molecules") renderMoleculeThumbs(); });
@@ -1537,6 +1542,15 @@ function startCosmos() {
   function frame(ts) { if (t0 == null) t0 = ts; draw((ts - t0) / 1000); requestAnimationFrame(frame); }
   if (reduced) draw(0); else requestAnimationFrame(frame);
   window.addEventListener("resize", () => { build(); if (reduced) draw(0); });
+}
+
+// Deep-link convention guard: openFromHash resolves elements before molecules,
+// so a molecule id equal to an element symbol/number (e.g. "co" → cobalt) would
+// be unreachable by hash. Warn a maintainer at load rather than fail silently.
+for (const m of MOLECULES) {
+  if (elementFromHash("#" + m.id)) {
+    console.warn(`Molecule id "${m.id}" collides with an element deep-link; it won't be reachable via its #hash.`);
+  }
 }
 
 // --- Init ---
