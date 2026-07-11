@@ -151,13 +151,17 @@ main { max-width: 1240px; margin: 0 auto; }
   .site-header { align-items: stretch; }
   .header-right { align-items: stretch; width: 100%; }
   .search-box { width: 100%; }
-  /* Switches share one row: the view control flexes to fill and its buttons
-     shrink so the EN/ES toggle keeps its place instead of being pushed past the
-     viewport edge (which previously made language unreachable on phones). */
-  .header-switches { flex-wrap: nowrap; gap: 10px; }
-  .view-switch { flex: 1 1 auto; min-width: 0; }
-  .view-switch button { flex: 1 1 0; min-width: 0; padding: 8px 10px; }
-  .lang-switch { flex: none; }
+  /* Switches share the row: the view control flexes to fill so the EN/ES toggle
+     keeps its place instead of being pushed off the right edge (which previously
+     made language unreachable on phones). Buttons keep their label width — no
+     min-width:0 — so on very narrow phones the row wraps the toggle to a second
+     line rather than clipping the labels inside the pills. */
+  /* Extra .header-switches specificity beats the base .view-switch / .lang-switch
+     rules that sit later in the file (same specificity would otherwise win). */
+  .header-switches { flex-wrap: wrap; gap: 8px; }
+  .header-switches .view-switch { flex: 0 1 auto; }
+  .header-switches .view-switch button { flex: 1 1 auto; padding: 8px 8px; font-size: .82rem; white-space: nowrap; }
+  .header-switches .lang-switch { flex: none; padding: 9px 13px; }
   /* Tighten the vertical rhythm so the table surfaces sooner on small screens. */
   body { padding-top: 22px; }
   .eyebrow { margin-bottom: 4px; }
