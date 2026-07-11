@@ -142,7 +142,7 @@ function applyFilters() {
   // temperature; otherwise it uses the room-temperature phase. Synthetics with
   // no melting point yield null (no known state) and drop out of any state.
   const useTemp = colorMode === "temp";
-  const tempC = tempK - 273.15;
+  const tempC = sliderTempC();
   tableEl.querySelectorAll(".element:not(.f-placeholder)").forEach(cell => {
     const el = ELEMENTS.find(e => e.n === +cell.dataset.n);
     const matchesText = !q ||
@@ -242,6 +242,10 @@ function renderTrendLegend() {
     <span class="trend-nodata"><i></i>${UI[lang].noData}</span>`;
 }
 
+// Slider temperature in °C, rounded to match the readout so the coloring, the
+// state filter and the displayed value all classify against the same number.
+function sliderTempC() { return Math.round(tempK - 273.15); }
+
 // Physical state of an element at a given temperature (°C), from melt/boil.
 // Returns null when melting point is unknown (synthetics) → shown as "no data".
 function stateAt(el, tempC) {
@@ -260,7 +264,7 @@ function renderStateLegend() {
 }
 function renderTempControl() {
   document.getElementById("temp-label").textContent = UI[lang].trends.temp;
-  tempReadoutEl.textContent = `${tempK} K · ${Math.round(tempK - 273.15)} °C`;
+  tempReadoutEl.textContent = `${tempK} K · ${sliderTempC()} °C`;
   stateLegendInlineEl.innerHTML = stateLegendHTML();
 }
 
@@ -283,7 +287,7 @@ function applyColorMode() {
   const cells = tableEl.querySelectorAll(".element:not(.f-placeholder)");
 
   if (isState || isTemp) {
-    const tempC = isTemp ? tempK - 273.15 : null;
+    const tempC = isTemp ? sliderTempC() : null;
     cells.forEach(cell => {
       const el = ELEMENTS.find(e => e.n === +cell.dataset.n);
       const st = isState ? el.phase : stateAt(el, tempC);
