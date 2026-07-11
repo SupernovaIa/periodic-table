@@ -372,14 +372,6 @@ main { max-width: 1240px; margin: 0 auto; }
 .table-scroll { overflow: visible; padding: 14px 6px; }
 @media (max-width: 940px) {
   .table-scroll { overflow-x: auto; padding: 10px 4px; }
-  /* A soft fade pinned to the right edge (background-attachment: scroll stays put
-     while the grid scrolls under it) hints that the table extends sideways. Only
-     the element and particle grids are wider than the viewport; the molecule grid
-     reflows, so it must not get the hint. */
-  .table-scroll[data-view="elements"],
-  .table-scroll[data-view="particles"] {
-    background: linear-gradient(to left, rgba(8, 11, 22, .6), transparent) right / 46px 100% no-repeat scroll;
-  }
 }
 .periodic-table {
   display: grid;

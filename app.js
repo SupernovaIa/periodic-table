@@ -1346,7 +1346,6 @@ function updateHeader() {
 
 function applyView() {
   const isElements = view === "elements";
-  tableScrollEl.dataset.view = view;   // scopes the mobile scroll hint (only wide grids scroll)
   tableEl.hidden = !isElements;
   particleTableEl.hidden = view !== "particles";
   moleculeTableEl.hidden = view !== "molecules";
