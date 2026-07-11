@@ -138,6 +138,11 @@ function toggleCategory(cat, item) {
 // --- Combined filter (search + category) ---
 function applyFilters() {
   const q = searchEl.value.trim().toLowerCase();
+  // In the temperature color mode the state filter follows the slider
+  // temperature; otherwise it uses the room-temperature phase. Synthetics with
+  // no melting point yield null (no known state) and drop out of any state.
+  const useTemp = colorMode === "temp";
+  const tempC = tempK - 273.15;
   tableEl.querySelectorAll(".element:not(.f-placeholder)").forEach(cell => {
     const el = ELEMENTS.find(e => e.n === +cell.dataset.n);
     const matchesText = !q ||
@@ -145,7 +150,8 @@ function applyFilters() {
       el.s.toLowerCase().includes(q) ||
       String(el.n) === q;
     const matchesCat = !activeCategory || el.cat === activeCategory;
-    const matchesState = !activeState || el.phase === activeState;
+    const elState = useTemp ? stateAt(el, tempC) : el.phase;
+    const matchesState = !activeState || elState === activeState;
     cell.classList.toggle("hidden", !(matchesText && matchesCat && matchesState));
   });
 }
@@ -326,7 +332,11 @@ function applyColorMode() {
   });
 }
 
-tempRangeEl.addEventListener("input", () => { tempK = +tempRangeEl.value; applyColorMode(); });
+tempRangeEl.addEventListener("input", () => {
+  tempK = +tempRangeEl.value;
+  applyColorMode();
+  if (activeState) applyFilters();   // the state filter tracks the slider temperature
+});
 
 function setColorMode(mode) {
   colorMode = mode;
@@ -335,9 +345,11 @@ function setColorMode(mode) {
   if (mode !== "category" && activeCategory) {
     activeCategory = null;
     legendEl.querySelectorAll(".legend-item").forEach(i => i.classList.remove("dimmed"));
-    applyFilters();
   }
   applyColorMode();
+  // Re-filter: switching into/out of temp mode changes the state basis
+  // (slider temperature vs. room temperature), and category may have cleared.
+  applyFilters();
 }
 
 colorbyEl.querySelectorAll("button").forEach(b =>
