@@ -151,7 +151,13 @@ main { max-width: 1240px; margin: 0 auto; }
   .site-header { align-items: stretch; }
   .header-right { align-items: stretch; width: 100%; }
   .search-box { width: 100%; }
-  .header-switches { justify-content: space-between; }
+  /* Switches share one row: the view control flexes to fill and its buttons
+     shrink so the EN/ES toggle keeps its place instead of being pushed past the
+     viewport edge (which previously made language unreachable on phones). */
+  .header-switches { flex-wrap: nowrap; gap: 10px; }
+  .view-switch { flex: 1 1 auto; min-width: 0; }
+  .view-switch button { flex: 1 1 0; min-width: 0; padding: 8px 10px; }
+  .lang-switch { flex: none; }
 }
 #search {
   width: 100%;
