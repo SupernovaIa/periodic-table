@@ -1,0 +1,155 @@
+/* ==========================================================================
+   Claude / Anthropic theme — a warm, editorial, light alternative to the
+   default cosmic theme. Loaded AFTER styles.css and scoped under
+   html[data-theme="claude"], so it never touches the base theme.
+
+   Strategy: almost everything in styles.css hangs off CSS variables, so most
+   of the work is re-declaring the tokens. The rest neutralizes the hardcoded
+   dark decorations (aurora, starfield, gradient title, dark-on-accent text,
+   heavy black shadows) that variables can't reach.
+   ========================================================================== */
+
+html[data-theme="claude"] {
+  /* Warm neutral surfaces: ivory page, near-white raised cards. */
+  --bg:            #EFECE3;   /* page */
+  --bg-soft:       #F6F4EC;   /* chips, pill groups, inputs */
+  --panel:         #FFFDF9;   /* cards, drawer, cells base */
+  --border:        #E1DCCE;   /* warm hairline */
+  --text:          #262521;   /* near-black, warm */
+  --text-dim:      #726E64;   /* warm grey */
+  --accent:        #C96442;   /* deep coral (Anthropic "clay") */
+  --on-accent:     #FBFAF7;   /* cream text/icon on accent fills */
+  --shadow:        0 16px 44px rgba(70, 58, 44, .16);
+
+  /* Serif for display type; UI stays on the base system sans. */
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, ui-serif, serif;
+
+  /* Category colours retinted to an earthy, medium-saturation spectrum that
+     stays legible as a pale tint on the ivory cells. Warm -> cool sweep. */
+  --c-alkali-metal:          #BF4D36;  /* brick */
+  --c-alkaline-earth-metal:  #D97757;  /* coral */
+  --c-transition-metal:      #C08A2D;  /* ochre */
+  --c-post-transition-metal: #8A8B4A;  /* olive */
+  --c-metalloid:             #5E9B8C;  /* muted teal */
+  --c-nonmetal:              #4A8DB7;  /* dusty blue */
+  --c-halogen:               #6C6CA8;  /* indigo */
+  --c-noble-gas:             #9B6FB0;  /* muted purple */
+  --c-lanthanide:            #C16A9A;  /* mauve */
+  --c-actinide:              #B85C6E;  /* dusty rose */
+  --c-unknown:               #9A938A;  /* warm grey */
+
+  /* Physical-state colours (state / temperature modes) */
+  --state-solid:  #6C6CA8;
+  --state-liquid: #5E9B8C;
+  --state-gas:    #C08A2D;
+
+  /* Standard Model particle categories */
+  --pc-quark:        #9B6FB0;
+  --pc-lepton:       #5E9B8C;
+  --pc-gauge-boson:  #D97757;
+  --pc-scalar-boson: #C08A2D;
+
+  /* Molecule categories */
+  --mc-inorganic: #4A8DB7;
+  --mc-organic:   #8A8B4A;
+  --mc-bio:       #C16A9A;
+  --mc-drugs:     #D97757;
+}
+
+/* --- Backdrop: drop the cosmos, use a soft warm wash --- */
+html[data-theme="claude"] body {
+  background:
+    radial-gradient(120% 90% at 50% -12%, #F7F4EA 0%, transparent 58%),
+    radial-gradient(90% 70% at 100% 108%, #EDE7DA 0%, transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+html[data-theme="claude"] body::before { display: none; }  /* kill aurora glow */
+html[data-theme="claude"] #cosmos { display: none; }        /* hide starfield canvas */
+
+/* --- Editorial typography --- */
+html[data-theme="claude"] .site-header h1 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -.015em;
+  /* Undo the gradient-clipped text from the base theme. */
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  color: var(--text);
+  filter: none;
+}
+html[data-theme="claude"] .eyebrow { color: var(--accent); }
+html[data-theme="claude"] .detail-title h2,
+html[data-theme="claude"] .cpreview-body h3,
+html[data-theme="claude"] .pmedia-name {
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+/* Element symbols in the serif face as well — the chemical symbols themselves,
+   in the grid, the drawer tile, the compare table and the central hero. Scoped
+   to elements; particle symbols and molecule formulas keep their own notation. */
+html[data-theme="claude"] .element .sym,
+html[data-theme="claude"] .compare-sym,
+html[data-theme="claude"] .cpreview-tile,
+html[data-theme="claude"] .cmedia-caption .cm-sym,
+html[data-theme="claude"] .detail-symbol:not(.detail-symbol--particle):not(.detail-symbol--molecule) {
+  font-family: var(--font-serif);
+}
+
+/* --- Fix dark-on-accent text (base hardcodes #0b0f1a) --- */
+html[data-theme="claude"] .colorby-pills button.active,
+html[data-theme="claude"] .statefilter-pills button.active,
+html[data-theme="claude"] .timeline-toggle.active,
+html[data-theme="claude"] .detail-media[data-mode="photo"]   .media-toggle button[data-mode="photo"],
+html[data-theme="claude"] .detail-media[data-mode="diagram"] .media-toggle button[data-mode="diagram"],
+html[data-theme="claude"] .cmedia[data-mode="photo"]   .cmedia-toggle button[data-mode="photo"],
+html[data-theme="claude"] .cmedia[data-mode="diagram"] .cmedia-toggle button[data-mode="diagram"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+/* View switch: base uses a blue->purple gradient; use the flat coral instead. */
+html[data-theme="claude"] .view-switch button.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Coral focus ring on the search box (base uses a blue glow). */
+html[data-theme="claude"] #search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(201, 100, 66, .18);
+}
+
+/* --- Soften shadows: black drop-shadows read as harsh on a light bg --- */
+html[data-theme="claude"] .element:hover,
+html[data-theme="claude"] .element:focus-visible,
+html[data-theme="claude"] .particle:hover,
+html[data-theme="claude"] .particle:focus-visible,
+html[data-theme="claude"] .molecule:hover,
+html[data-theme="claude"] .molecule:focus-visible {
+  box-shadow: 0 10px 24px rgba(70, 58, 44, .16), 0 0 0 1px var(--cat);
+}
+html[data-theme="claude"] .element.selected,
+html[data-theme="claude"] .particle.selected,
+html[data-theme="claude"] .molecule.selected {
+  box-shadow: 0 0 0 2px var(--cat), 0 8px 20px rgba(70, 58, 44, .16);
+}
+html[data-theme="claude"] .inline-detail-inner {
+  box-shadow: 0 20px 56px rgba(70, 58, 44, .18);
+}
+html[data-theme="claude"] .compare-panel {
+  box-shadow: 0 -14px 44px rgba(70, 58, 44, .16);
+}
+
+/* --- Overlay scrim: warm and lighter so the light drawer still pops --- */
+html[data-theme="claude"] .overlay {
+  background: rgba(46, 40, 30, .32);
+}
+
+/* --- Particle hero symbol: base paints it #fff for the dark orb; the hero
+       background is now light, so use dark text with a soft warm halo. --- */
+html[data-theme="claude"] .porb-sym {
+  color: var(--text);
+  text-shadow: 0 1px 10px rgba(255, 253, 249, .8),
+               0 0 30px color-mix(in srgb, var(--cat) 55%, transparent);
+}
