@@ -7,6 +7,7 @@ const detailEl        = document.getElementById("detail");
 const overlayEl       = document.getElementById("overlay");
 const langEl          = document.getElementById("lang");
 const viewEl          = document.getElementById("view");
+const themeEl         = document.getElementById("theme");
 const particleTableEl = document.getElementById("particle-table");
 const particleLegendEl = document.getElementById("particle-legend");
 const moleculeTableEl  = document.getElementById("molecule-table");
@@ -48,6 +49,7 @@ let inlineEl = null;                       // central floating detail card
 let orbStop = null;                        // stops the active 3D animation (orb / molecule)
 let lang = localStorage.getItem("lang") || "en";
 let view = localStorage.getItem("view") || "elements";
+let theme = localStorage.getItem("theme") || "cosmos";  // "cosmos" | "claude"
 
 // Resolve a possibly-bilingual field: returns field[lang] if it's an {en,es} object,
 // otherwise the value itself (used for `disc`, which is often a plain proper name).
@@ -1472,6 +1474,13 @@ function applyLanguage() {
   langEl.querySelectorAll("button").forEach(b =>
     b.classList.toggle("active", b.dataset.lang === lang));
 
+  // Theme switch (aria label + button names; the <span> keeps the colour swatch).
+  // Anchor on `button[...]`: a plain `[data-theme="x"] span` would also match via
+  // the <html data-theme> ancestor and pick the wrong span.
+  themeEl.setAttribute("aria-label", u.theme);
+  themeEl.querySelector('button[data-theme="cosmos"] span').textContent = u.themeCosmos;
+  themeEl.querySelector('button[data-theme="claude"] span').textContent = u.themeClaude;
+
   // Re-render the open panel in the new language
   if (openElement) openDetail(openElement);
   else if (openParticle) openParticleDetail(openParticle);
@@ -1486,11 +1495,36 @@ function setLanguage(next) {
   applyFilters();
 }
 
+// --- Theme (cosmos / claude) ---
+function applyTheme() {
+  document.documentElement.dataset.theme = theme;
+  themeEl.querySelectorAll("button").forEach(b =>
+    b.classList.toggle("active", b.dataset.theme === theme));
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = theme === "claude" ? "#efece3" : "#0b0f1a";
+  if (theme === "cosmos") startCosmos();   // no-op after the first call
+}
+
+function setTheme(next) {
+  if (next === theme) return;
+  theme = next;
+  localStorage.setItem("theme", theme);
+  applyTheme();
+}
+
+themeEl.querySelectorAll("button").forEach(b =>
+  b.addEventListener("click", () => setTheme(b.dataset.theme)));
+
 langEl.querySelectorAll("button").forEach(b =>
   b.addEventListener("click", () => setLanguage(b.dataset.lang)));
 
 // --- Galactic background: twinkling stars + a few wandering glowing particles ---
+// Only used by the "cosmos" theme; created lazily and once (the "claude" theme
+// hides #cosmos via CSS). Guard so switching themes never spawns a second canvas.
+let cosmosStarted = false;
 function startCosmos() {
+  if (cosmosStarted) return;
+  cosmosStarted = true;
   const canvas = document.createElement("canvas");
   canvas.id = "cosmos";
   document.body.prepend(canvas);
@@ -1570,7 +1604,7 @@ for (const m of MOLECULES) {
 }
 
 // --- Init ---
-startCosmos();
+applyTheme();   // sync data-theme + switch state + start the cosmos when active
 buildTable();
 buildLegend();
 buildParticleTable();

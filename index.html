@@ -12,7 +12,12 @@
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary">
   <meta property="og:image" content="favicon.svg">
+  <!-- Apply the saved theme before first paint to avoid a flash of the other theme. -->
+  <script>document.documentElement.dataset.theme = localStorage.getItem("theme") || "cosmos";</script>
   <link rel="stylesheet" href="styles.css">
+  <!-- Warm "Claude" theme: an override layer scoped under html[data-theme="claude"].
+       Inert under the default "cosmos" theme. -->
+  <link rel="stylesheet" href="theme-claude.css">
 </head>
 <body>
   <header class="site-header">
@@ -31,6 +36,10 @@
           <button type="button" data-lang="en" aria-label="English">EN</button>
           <span class="lang-sep" aria-hidden="true">/</span>
           <button type="button" data-lang="es" aria-label="Español">ES</button>
+        </div>
+        <div class="theme-switch" id="theme" role="group" aria-label="Theme">
+          <button type="button" data-theme="cosmos"><i class="theme-dot" aria-hidden="true"></i><span></span></button>
+          <button type="button" data-theme="claude"><i class="theme-dot" aria-hidden="true"></i><span></span></button>
         </div>
       </div>
       <div class="search-box">
