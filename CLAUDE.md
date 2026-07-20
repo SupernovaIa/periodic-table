@@ -37,6 +37,15 @@ directamente en el navegador (`open index.html`) y se publica con GitHub Pages.
   sumar un botón en el selector `#lang` de `index.html`.
 - **CSS**: usa las variables de `:root` (colores, tema). Los colores por categoría
   son `--c-<categoria>`.
+- **Temas**: dos temas conmutables desde la cabecera (`#theme`, estado en
+  `localStorage("theme")`, por defecto `cosmos`). El *base* (`styles.css`) es el tema
+  oscuro **cosmos**; **claude** (`theme-claude.css`) es una **capa de override** cargada
+  después y scopeada bajo `html[data-theme="claude"]` (marfil + coral, tipografía serif,
+  sin aurora/starfield). Casi todo cuelga de variables, así que un tema nuevo es sobre
+  todo re-declarar tokens; solo hay que neutralizar lo hardcodeado (fondo, `body::before`,
+  `#cosmos`, degradados, texto oscuro sobre acento, sombras negras). Un `<script>` inline
+  en `<head>` fija `data-theme` antes del primer pintado (evita el *flash*). `startCosmos()`
+  es idempotente y solo se llama con el tema cosmos activo.
 - **Sin dependencias ni paso de build**: mantenerlo en HTML/CSS/JS plano.
 - **Ficha del elemento**: en pantallas anchas (≥900px), el **hueco central** de la tabla
   muestra la **imagen/orbitales en grande** (`renderCentralMedia`, con conmutador
